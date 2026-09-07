@@ -100,6 +100,14 @@ SECRET_PATTERNS = [
     ("GLM/Zhipu API key", re.compile(r"\b[0-9a-f]{32}\.[A-Za-z0-9]{16}\b")),
     ("Slack token", re.compile(r"\bxox[abprs]-[0-9A-Za-z\-]{10,}")),
     ("private key block", re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----")),
+    # A kubeconfig pasted into a chat carries the client key base64-encoded, so
+    # the plaintext header above never sees it (2026-09-07). Both patterns consume
+    # the whole base64 run so that redaction removes the key, not just the tell.
+    ("kubeconfig client key", re.compile(r"\bclient-key-data:\s*[A-Za-z0-9+/=]{40,}")),
+    # base64("-----BEGIN X"): bytes 9-11 are "N X", so the 16th char is X & 63 —
+    # P→Q, R→S, E→F, O→P, D→E for PRIVATE/RSA/EC/OPENSSH/DSA keys; CERTIFICATE's
+    # C→D is public and deliberately excluded. Probed, not assumed (2026-09-07).
+    ("base64-encoded private key", re.compile(r"LS0tLS1CRUdJTiB[QSFPE][A-Za-z0-9+/=]*")),
     ("inline credential", re.compile(
         r"(?i)\b(?:password|passwd|secret|api[_-]?key|access[_-]?token)\s*[:=]\s*"
         r"['\"]?[^\s'\"<>{}$]{8,}")),

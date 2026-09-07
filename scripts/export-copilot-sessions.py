@@ -106,7 +106,7 @@ def parse_ts(v, fallback: dt.datetime) -> dt.datetime:
     return fallback
 
 
-STRUCTURAL = re.compile(r"^(----- (?:USER|ASSISTANT) -----|#{4,}|={4,}|# TURN \d.*)$")
+STRUCTURAL = re.compile(r"^(----- (?:USER|ASSISTANT) -----|#{4,}|# TURN \d.*)$")   # #-only lines: the importer drops them
 CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 

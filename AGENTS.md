@@ -40,6 +40,10 @@ cd ~/kb/personal    # or kbp / kbb / kbu
 5. **Merge before you create.** Look for the note that already answers the
    question and extend it; a new note needs a reason. Delete what has no value for
    future reference — a capture with no conclusion is not a record. `RULES.md` §7.
+   **Conclusions, not discussion:** a note holds the answer, its check, its dated
+   numbers and the options that lost — never the conversation. Soft ceiling 400
+   lines: split by question or compress before adding more; 600 is the hard stop.
+   `RULES.md` §4.
 6. **Never create a folder outside the declared sets** in `RULES.md` §2. A
    *declared* folder that is missing was lost to git not tracking directories —
    recreate it and add a `.gitkeep`.
@@ -60,6 +64,10 @@ human. `~/kb/sync.sh` pulls, lints, commits and pushes every repo except
   see, loading the brief; then `ChatGPT-`, `Claude-`, `Gemini-Client-Setup.md`
   for what differs per client
 - `web-brief.md` — model-facing; paste or upload as-is
+- `Distillation-Playbook.md` — **read before any import, triage, merge or audit**:
+  how to turn chat exports into few, dense, correct notes without leaking status
+  or secrets; the failure modes of the first full pass and the agent briefs that
+  fixed them
 
 ## This repo — kb-base
 

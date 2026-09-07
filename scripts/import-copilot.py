@@ -2,7 +2,7 @@
 """Import VS Code Copilot chat sessions into a repo's inbox/, one note per session.
 
     ../base/scripts/import-copilot.py <dir-or-file>... [--repo PATH]
-                                      [--tag project] [--dry-run] [--budget 48000]
+                                      [--tag project] [--dry-run] [--budget 2000000]
 
 One copy, in kb-base. The target repo is the git work tree this is run in — the
 same rule as lint and newnote — or --repo. The target's own lint.py runs at the
@@ -221,7 +221,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("paths", nargs="+", type=Path, help="session .txt files or directories of them")
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--budget", type=int, default=48_000, help="max body chars before turn-level clipping")
+    ap.add_argument("--budget", type=int, default=2_000_000, help="max body chars before turn-level clipping (2 MB; lint warns at 5 MB). Clipping loses the middle of a session — distil from the raw export, never from a clipped note.")
     ap.add_argument("--repo", type=Path, help="target repo root (default: the git work tree you run this in)")
     ap.add_argument("--tag", action="append", default=[], help="extra tag(s), must be in the target's tags.txt")
     args = ap.parse_args()

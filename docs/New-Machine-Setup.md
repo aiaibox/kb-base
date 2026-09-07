@@ -7,7 +7,7 @@ pipeline, weekly review.
 org, and your password manager open — it holds the **git-crypt key**.
 Without it `private/` can be cloned but never read.
 
-Every step below is run **on the new Mac**. Total ~40 min, most of it waiting on
+Every step below is run **on the new Mac**. Total ~45 min, most of it waiting on
 Homebrew.
 
 ---
@@ -35,12 +35,52 @@ brew install git-crypt gh ripgrep fd fzf bat glow
 gh auth login
 ```
 Choose GitHub.com → HTTPS → login with a browser. **Expect:** `Logged in as <you>`.
+**If this Mac already holds a work GitHub account, do step 2a instead of relying on
+HTTPS** — the shared keychain entry will make the private clones present the wrong login.
+
+## 2a. Two GitHub accounts on one Mac  · ~5 min
+
+Git's only credential helper on a stock Mac is `osxkeychain` (from Xcode's system
+gitconfig), which caches **one** github.com credential per host, not per account — so
+the private clones keep presenting the work login and fail exactly as if the login
+had not happened. `gh auth setup-git` "fixes" it by coupling git to whichever `gh`
+account is active, which makes every work repo follow `gh auth switch` too. The clean
+split is SSH with a host alias plus a directory-scoped identity:
+
+```
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_aiaibox -C aiaibox-kb
+cat >> ~/.ssh/config <<'EOF'
+Host github.com
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+Host github-aiaibox
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519_aiaibox
+  IdentitiesOnly yes
+EOF
+printf '[user]\n\tname = aiaibox\n\temail = 322385153+aiaibox@users.noreply.github.com\n' > ~/.gitconfig-kb
+git config --global includeIf."gitdir:~/kb/".path ~/.gitconfig-kb
+```
+
+Add `~/.ssh/id_ed25519_aiaibox.pub` at github.com/settings/keys as `aiaibox` (or
+`gh auth login --git-protocol ssh` and let it upload; `gh` holds both accounts and
+`gh auth switch` then affects only `gh` commands, never git). In step 3 clone with the
+alias — `git clone git@github-aiaibox:aiaibox/kb-personal.git personal` — instead of
+`gh repo clone`. The noreply address keeps a real email out of `kb-public`'s permanent,
+world-readable history.
+
+**Verify:** `ssh -T github-aiaibox` → `Hi aiaibox!`; `ssh -T git@github.com` still
+names the work account; `git -C ~/kb/personal config user.email` shows the noreply
+address while a repo outside `~/kb` still shows the work identity.
+**Never run `gh auth setup-git`** in this arrangement.
 
 ## 3. Clone the four repos  · ~1 min
 
 ```
 mkdir -p ~/kb && cd ~/kb && for r in base public personal business private; do gh repo clone aiaibox/kb-$r $r; done
 ```
+(With step 2a: `for r in …; do git clone git@github-aiaibox:aiaibox/kb-$r.git $r; done`.)
 **Expect:** five directories. `base` first — it holds the one copy of lint, newnote,
 templates and rules that every other repo's hooks point at. `private/` is ciphertext at this point — its notes
 are unreadable binary until step 5.
@@ -54,20 +94,43 @@ chmod 700 ~/kb/private
 
 ## 5. Unlock private  · ~2 min
 
-Export the git-crypt key from your password manager to a file, then:
+Export the git-crypt key from your password manager to a file. A git-crypt key file
+is **binary, 148 bytes**: 12-byte magic `\0GITCRYPTKEY` (it starts with a NUL),
+`00 00 00 02`, a 32-byte AES-256 key, a 64-byte HMAC key, four zero bytes, no
+trailing newline. Stored as text it is base64 — always **200 characters ending
+`AA==`**. If the password manager holds it as an attachment, pass the downloaded file
+straight to `git-crypt unlock` with no base64 step; if it holds the base64 text:
 
 ```
-cd ~/kb/private && git-crypt unlock /path/to/kb-private.key
+v='PASTE_VALUE'; echo "length=${#v}  last4=${v: -4}"          # expect 200 / AA==
+( umask 077; printf '%s' "$v" | base64 -d > ~/kbkey )          # printf, not echo
+test "$(wc -c < ~/kbkey)" -eq 148 && head -c 12 ~/kbkey | xxd  # 0047 4954 4352 5950 544b 4559
+cd ~/kb/private && git-crypt unlock ~/kbkey; rm -f ~/kbkey      # ';' not '&&': a failed unlock must not leave the key on disk
 ```
-**Expect:** no output, and `cat ~/kb/private/finance/accounts/*.md` now shows
-readable text. **Delete the key file afterwards** — the password manager stays the only copy.
+**Expect:** no output from the unlock, and `cat ~/kb/private/finance/accounts/*.md`
+now shows readable text. **Delete the key file afterwards** — the password manager
+stays the only copy. `base64: error decoding base64 input stream` (seen 2026-09-06)
+means the clipboard held the shell prompt line, not the key; 64 hex characters is
+the bare AES key, which git-crypt cannot consume.
+
+`encrypted file has been tampered with` on unlock means a **corrupt blob, not a wrong
+key**: a wrong AES-CTR key gives ~25% printable garbage from byte 0, a damaged blob
+decrypts cleanly to an offset (94% printable). `git-crypt status -e` only reads
+`.gitattributes` and passes corrupt blobs; the real check decrypts each one — run it
+here and before every push of `private`:
+
+```
+cd ~/kb/private && fail=0; for f in $(git ls-files); do b=$(git cat-file -p "HEAD:$f" 2>/dev/null | head -c 9 | xxd -p); [ "$b" = 004749544352595054 ] || continue; git cat-file -p "HEAD:$f" | git-crypt smudge >/dev/null 2>&1 || { echo "CORRUPT: $f"; fail=1; }; done; [ $fail = 0 ] && echo "all encrypted blobs decrypt"
+```
+**Expect:** `all encrypted blobs decrypt`.
 
 ```
 cd ~/kb/private && git-crypt status | grep -c 'not encrypted'
 ```
-**Expect:** a small number (~29). Those are machinery — dotfiles, `scripts/`,
-`scripts/lint.py`, `AGENTS.md`, `CLAUDE.md`. If any *note* appears there, stop
-and fix `.gitattributes` before committing anything.
+**Expect:** a small number (17 on 2026-09-07, ~29 earlier — the count moves). Those are
+machinery — dotfiles, `scripts/`, `scripts/lint.py`, `AGENTS.md`, `CLAUDE.md`. The
+rule is: if any *note* appears there, stop and fix `.gitattributes` before committing
+anything.
 
 ## 6. Enable the pre-commit hook in all four repos  · instant
 
@@ -128,9 +191,19 @@ launchctl list | grep com.kb
 System Settings → Privacy & Security → **Full Disk Access** → **+** → press
 `⌘⇧G`, enter `/usr/bin/python3`, add it. Repeat for `/bin/bash`.
 
-Without this, the watcher runs, exits 0, and reads **nothing** from `~/Downloads`.
-The log stays empty and there is no error anywhere. Budget for this being the
-cause whenever captures silently stop.
+**The trap:** with Homebrew installed, bare `python3` is Homebrew's (3.13/3.14 at
+`/opt/homebrew/bin/python3`) while the plists hardcode `/usr/bin/python3` (Apple's
+3.9.6). Grant FDA to the Homebrew binary and the watcher fails silently forever.
+Check the one you are adding: `/usr/bin/python3 -V` → `Python 3.9.6` (the three
+scripts compile and run under 3.9.6 — verified 2026-09-05).
+
+Without the grant, the watcher runs, exits 0, and reads **nothing** from `~/Downloads`.
+The log stays empty and there is no error anywhere: `watcher.py` returns before
+logging when `WATCH_DIR.glob("*.md")` finds nothing, and `pathlib.glob` swallows
+`PermissionError` — a TCC denial and "no matching files" are byte-identical (empty
+log, exit 0, `runs` counting up). So `launchctl list` proving the agent fires proves
+nothing about the grant. Budget for this being the cause whenever captures silently
+stop.
 
 Restart the agents so they inherit the grant:
 
@@ -138,21 +211,38 @@ Restart the agents so they inherit the grant:
 for a in watcher review; do launchctl kickstart -k gui/$(id -u)/com.kb.$a; done
 ```
 
+**Decisive test** — a file whose name matches the export pattern but whose content
+does not; it logs before any network call and writes no note:
+
+```
+printf 'not an export\n' > ~/Downloads/claude-fdatest-2026-09-06T12-00-00-000Z.md
+sleep 40; cat ~/kb/.watcher.log
+rm -f ~/Downloads/claude-fdatest-2026-09-06T12-00-00-000Z.md
+```
+**Expect:** `… not a recognisable export, skipping` → granted (appeared within 5 s on
+2026-09-07). Still empty → the grant is missing or went to the wrong binary.
+
 ## 11. Obsidian  · ~3 min
 
-Install Obsidian, then **Open folder as vault** → `~/kb`.
-
-**Open `~/kb`, never `~/kb/private`.** Opening `private` directly drops an
-`.obsidian/workspace.json` that records the filenames you opened — defeating the
-point of numeric filenames.
-
-The shipped config already excludes `private/` from indexing:
+Install Obsidian but **do not open the vault yet**. Copy the shipped config first,
+with Obsidian closed (it rewrites both files from memory on quit): the first open
+indexes `private/`'s filenames into `.obsidian/workspace.json` unless the exclusion
+is already in place — it happened on the first machine.
 
 ```
+mkdir -p ~/kb/.obsidian
 cp ~/kb/personal/setup/obsidian-app.json ~/kb/.obsidian/app.json
 cp ~/kb/personal/setup/obsidian-appearance.json ~/kb/.obsidian/appearance.json
+grep -c 'private' ~/kb/.obsidian/app.json
 ```
-Restart Obsidian. **Expect:** `private/` absent from search and the file tree.
+**Expect:** `1` or more from the `grep`. If Obsidian is already running on the vault
+picker, an absent `~/Library/Application Support/obsidian/obsidian.json` means no
+vault is registered and the copy is safe.
+
+Then **Open folder as vault** → `~/kb`. **Open `~/kb`, never `~/kb/private`.**
+Opening `private` directly drops an `.obsidian/workspace.json` that records the
+filenames you opened — defeating the point of numeric filenames.
+**Expect:** `private/` absent from search and the file tree.
 
 ## 12. Vault-root symlinks  · instant
 
@@ -198,8 +288,11 @@ tail -5 ~/kb/.watcher.log
 
 | Symptom | Cause |
 |---|---|
-| Watcher exits 0, log empty, no notes | Full Disk Access (step 10) |
+| Watcher exits 0, log empty, no notes | Full Disk Access (step 10) — or granted to Homebrew's `python3` instead of `/usr/bin/python3`; run the decisive test |
 | `git-crypt unlock` fails | Wrong key, or repo already unlocked |
+| `base64: error decoding base64 input stream` on the key | Clipboard held the prompt line, not the 200-char base64 key (step 5 preflight) |
+| `encrypted file has been tampered with` | Corrupt blob, not a wrong key — run the step-5 integrity scan, repair from history |
+| Private clones present the work GitHub login | One `osxkeychain` credential per host (step 2a) |
 | `private/` notes look like binary | Step 5 not done |
 | Bad commit accepted | `core.hooksPath` not set (step 6) |
 | Export ignored, log says "not a recognisable export" | Plain-text instead of Markdown export |

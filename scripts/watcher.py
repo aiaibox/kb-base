@@ -527,6 +527,17 @@ def process(path: Path, cfg: dict, state: dict, dry_run: bool) -> None:
         log(f"{path.name}: not a recognisable export, skipping")
         return
 
+    # The exporter has been seen to stamp a Gemini export "ChatGPT Export" in
+    # the header while naming the file gemini-…; the filename prefix is the
+    # exporter's own routing and wins when the two disagree (found 2026-09-07,
+    # six notes mislabelled).
+    m = EXPORT_RE.match(path.name)
+    if m and m.group(1).lower() != parsed["platform"].lower():
+        fixed = {"chatgpt": "ChatGPT", "claude": "Claude", "gemini": "Gemini",
+                 "deepseek": "DeepSeek", "grok": "Grok"}[m.group(1).lower()]
+        log(f"{path.name}: header says {parsed['platform']}, filename says {fixed}; using the filename")
+        parsed["platform"] = fixed
+
     log(f"{path.name}: {parsed['platform']}, {len(parsed['turns'])} turns")
 
     conversation = "\n\n".join(

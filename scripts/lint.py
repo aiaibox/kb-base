@@ -61,6 +61,8 @@ MIN_TOPIC_LINKS = 3      # advisory: see the 'topic' rule in main()
 # whole-repo size is 1GB. A note vault should never come close, so anything this
 # large is almost certainly an attachment committed by accident — and once it is
 # in history the only remedy is a history rewrite. Fail early instead.
+SOFT_LINES = 400   # RULES §4: split by question or compress before adding more
+HARD_LINES = 600   # the embedding window; past it the tail is unfindable
 MAX_FILE_BYTES = 25 * 1024 * 1024
 WARN_FILE_BYTES = 5 * 1024 * 1024
 NEVER_COMMIT_SUFFIXES = {".mov", ".mp4", ".zip", ".dmg", ".iso", ".sqlite", ".db"}
@@ -482,6 +484,20 @@ def main(local=None) -> int:
                                     path, 1,
                                     f"tag '{tag}' is not in tags.txt — add it "
                                     "deliberately or use an existing one"))
+
+            # Length: conclusions, not discussion (RULES §4). Index notes and
+            # append-only logs are the only exemptions.
+            n_lines = text.count("\n") + 1
+            exempt = "index" in parse_tags(fields.get("tags", "")) or "log" in rel.parts
+            if not exempt and n_lines > HARD_LINES:
+                problems.append(Problem(
+                    path, 1, f"{n_lines} lines, over the {HARD_LINES}-line hard ceiling — "
+                    "split by question (RULES §4)"))
+            elif not exempt and n_lines > SOFT_LINES:
+                problems.append(Problem(
+                    path, 1, f"{n_lines} lines, over the {SOFT_LINES}-line soft ceiling — "
+                    "split by question or compress before adding more (RULES §4)",
+                    warning=True))
 
             # Wikilinks must resolve inside this repo.
             for lineno, line in body_lines_outside_code(text):

@@ -197,18 +197,18 @@ The test for Discard: **would you ever re-read it?** If not, it is noise. An
 inbox nobody reads is worse than no inbox.
 
 ### Volatile content
-
-Mark it `time_sensitivity: volatile` in frontmatter, and state the observation
-date inline next to the figure:
-
+Tag it `volatile` and state the observation date inline next to the figure:
 ```markdown
 GLM-5.3-Flash: $0.15/M input, $0.50/M output (observed 2026-09-05, z.ai pricing page)
 ```
-
 A volatile figure with no date is worse than no figure — it will be trusted long
-after it stopped being true.
-
+after it stopped being true. The tag is the only marker; there is no separate
+frontmatter field.
 ### Captured chat conversations, specifically
+
+> The working method — turn index, condense, read to the end, split reasoning
+> from status, merge first, stage-and-apply with agents — is `docs/Distillation-Playbook.md`.
+> This section says what the result must contain.
 
 A conversation is **not** an artefact worth keeping. What was concluded is. The
 transcript is discarded; only the distillation survives. The goal for every
@@ -290,7 +290,7 @@ updated: 2026-09-05               # bump on every edit
 ```
 
 Optional, and used where they earn their place: `source:` (what import or export
-it came from), `sensitivity:`, `importance:`, `time_sensitivity:`.
+it came from), `sensitivity:`, `importance:`.
 
 ### Titles
 
@@ -300,34 +300,42 @@ A title is the filename slug and the primary retrieval handle. Name the
 - Good: `Switching from flake8 to Ruff on a 40k-line codebase`
 - Bad: `Linting tools comparison`
 
-### Size — one note, one question
+### Size — one note, one question, conclusions only
+
+The vault records **conclusions, decisions, results and verified procedures**.
+It never records the discussion that produced them: no narration of turns, no
+"we then tried", no per-run diary. A reader arrives with a question and leaves
+with the answer, the check that proves it, the numbers with their dates, and the
+options that lost. Length follows the number of distinct conclusions, never the
+length of the source.
 
 **Split a note when its sections are independent subjects. Do not split it when
-they are steps in one sequence, however many there are.**
+they are steps in one sequence, however many there are.** The test: **could you
+give one section a specific title and would anyone search for it on its own?**
+If yes, it is a note. If it only makes sense in sequence with its neighbours, it
+is a section.
 
-Line count is not the measure. A runbook with fifteen numbered steps is one
-question — *how do I do this?* — and splitting it mid-procedure makes it worse,
-because the reader would follow steps across two files. A design document with
-nine unrelated sections is nine questions wearing one filename, and it should
-split however short it is.
+**Soft ceiling: 400 lines.** A note that reaches 400 lines is stopped and read
+end to end before anything is added, and one of three things happens:
 
-The test: **could you give one section a specific title and would anyone search
-for it on its own?** If yes, it is a note. If it only makes sense in sequence
-with its neighbours, it is a section.
+1. **Split by question** — it holds more than one. Each part gets a title someone
+   would search for; the parts share nothing but one pointer line each way.
+2. **Compress** — it holds one question but carries derivation or history:
+   prose about runs becomes one dated table; a rejected option becomes one row;
+   a timeline stays only in an incident; repeated facts collapse to one line
+   with both dates when they disagree (`> superseded`).
+3. **Justify** — it is an index over other notes (`topic`) or an append-only log
+   (`log/`, the history note). Even then it links out rather than inlining.
 
-**Technical ceiling: roughly 600 lines.** Past that a note exceeds the embedding
-model's 8192-token window and gets silently truncated by semantic search, so the
-tail becomes unfindable. This is a real limit with a real cause — not a style
-preference — and it is generous: the largest note in this vault is 389 lines
-(~4,800 tokens, 59% of the window).
+**Hard ceiling: 600 lines** — the embedding window; past it the tail becomes
+unfindable. Lint warns at 400 and fails at 600; only `index`-tagged notes and
+`log/` are exempt.
 
-> That ceiling disappears if `semantic.py` embeds **per heading** rather than per
-> note, which is the better design anyway. Treat 600 as a property of the current
-> indexing approach, not of the vault.
-
-Append-only logs (`log/`, `tech/kb/kb-history.md`) grow without limit by design.
-They need no exemption from the rule above: a continuous dated record *is* one
-question.
+**After a merge the note must be shorter than the sum of its sources** — the
+overlap was the point. **After a split each part must read as a complete note**
+with its own Scope, Conclusion and Verify, not as "part 2 of". If a merge or a
+split does not leave the reader better off than the originals, it was the wrong
+operation.
 
 ### Creating notes
 

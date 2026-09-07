@@ -106,6 +106,18 @@ def parse_ts(v, fallback: dt.datetime) -> dt.datetime:
     return fallback
 
 
+STRUCTURAL = re.compile(r"^(----- (?:USER|ASSISTANT) -----|#{4,}|={4,}|# TURN \d.*)$")
+CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def body_safe(text: str) -> str:
+    """A body line that looks like one of this format's structural lines would
+    mis-split the importer (a session that discusses the export format prints
+    them); prefix it with a backslash. Stray control bytes make tools treat the
+    file as binary; drop them."""
+    return "\n".join(("\\" + l if STRUCTURAL.match(l) else l) for l in CONTROL.sub("", text).split("\n"))
+
+
 def write_export(sid, project, title, created, updated, models, turns, out_dir: Path,
                  source_line, note_lines, dry_run):
     """turns: [{'ts': datetime, 'model': str, 'user': str, 'assistant': str}]"""
@@ -121,7 +133,7 @@ def write_export(sid, project, title, created, updated, models, turns, out_dir: 
     lines += [RULE_EQ, ""]
     for n, t in enumerate(turns, 1):
         lines += [RULE_HASH, f"# TURN {n}   {t['ts'].strftime('%Y-%m-%d %H:%M:%SZ')}   model={t['model']}", RULE_HASH, "",
-                  "----- USER -----", t["user"].rstrip("\n"), "", "----- ASSISTANT -----", t["assistant"].rstrip("\n"), "", ""]
+                  "----- USER -----", body_safe(t["user"].rstrip("\n")), "", "----- ASSISTANT -----", body_safe(t["assistant"].rstrip("\n")), "", ""]
     text = "\n".join(lines).rstrip("\n") + "\n"
     if not dry_run:
         target.parent.mkdir(parents=True, exist_ok=True)

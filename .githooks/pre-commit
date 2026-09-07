@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Refuse the commit if the repo does not lint. One copy, in kb-base; every repo
+# points here with:  git config core.hooksPath ../base/.githooks
+# Repo-specific rules (public's hostname ban, private's decrypt check) live in
+# <repo>/scripts/lint-local.py and run as part of this same lint.
+set -euo pipefail
+BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if ! python3 "$BASE/scripts/lint.py" --quiet; then
+  echo >&2; echo "pre-commit: lint failed, commit aborted." >&2
+  echo "Fix the problems above, or use --no-verify if you truly must." >&2
+  exit 1
+fi

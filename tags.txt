@@ -1,0 +1,53 @@
+# Controlled tag vocabulary. One copy, in kb-base, read by lint in every repo —
+# repos differ by SENSITIVITY, not by subject,
+# so a domain valid in one is valid in all. Adding a tag is a deliberate edit
+# here, never something done in passing.
+#
+# Principle: tag only what full-text search cannot find. A note mentioning
+# Chase is findable by searching "Chase"; a note that IS a decision is not.
+# Specific entities — people, companies, tickers, places — belong in the title
+# and body, never here.
+
+# Type — what kind of note this is
+decision
+reference
+runbook
+index
+benchmark
+incident
+thesis
+position
+glossary
+note
+topic
+
+# Status
+import
+volatile
+needs-review
+superseded
+promote-to-public
+project
+
+# Domain
+infra
+ai
+security
+meta
+invest
+finance
+work
+qa
+client
+education
+health
+family
+home
+travel
+people
+math
+legal
+medical
+estate
+accounts
+lifestyle

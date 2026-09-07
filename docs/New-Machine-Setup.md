@@ -173,7 +173,7 @@ for r in base public personal business private; do (cd ~/kb/$r && python3 script
 **Expect:** five `clean` lines (`base` reports 0 notes). Warnings are fine; problems are not.
 
 ```
-python3 ~/kb/personal/scripts/review.py
+python3 ~/kb/base/scripts/review.py
 ```
 **Expect:** the weekly digest — note counts, empty inboxes, lint and drift all `ok`.
 

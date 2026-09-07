@@ -205,6 +205,40 @@ def tags_of(path: Path) -> list[str]:
     return [] if err else parse_tags(fields.get("tags", ""))
 
 
+# ---- note construction, shared with the watcher and the importers ----------
+
+def slugify(text: str, fallback: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60]
+    return slug or fallback
+
+
+def clip(text: str, limit: int) -> tuple[str, int]:
+    """Head ¼ + tail ¾ with a marker; returns (text, chars_omitted). The
+    conclusion of a conversation is at the end, so a plain text[:limit] discards
+    exactly the part worth keeping. Pure — callers decide whether to log."""
+    if len(text) <= limit:
+        return text, 0
+    head = limit // 4
+    tail = limit - head - 60
+    omitted = len(text) - head - tail
+    return f"{text[:head]}\n\n*[… {omitted:,} chars omitted …]*\n\n{text[-tail:]}", omitted
+
+
+def raw_transcript(meta: list[str], remarks: list[str], turns: list) -> list[str]:
+    """The one layout for a note that carries a transcript instead of a
+    distillation: metadata lines, blockquoted remarks, then the turns. A turn is
+    {"role", "text", "suffix"?} — or a plain string, emitted as-is (a separator).
+    Used by the watcher's hold-back path and by import-copilot."""
+    body = list(meta) + ([""] if meta else []) + [f"> {r}" for r in remarks] + ["", "## Raw conversation", ""]
+    for t in turns:
+        if isinstance(t, str):
+            body += [t, ""]
+            continue
+        heading = f"### {t['role']}" + (f" — {t['suffix']}" if t.get("suffix") else "")
+        body += [heading, "", t["text"], ""]
+    return body
+
+
 def check_date(value: str) -> str | None:
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", value):
         return "must be an ISO date (YYYY-MM-DD)"

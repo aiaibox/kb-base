@@ -63,6 +63,7 @@ human. `~/kb/sync.sh` pulls, lints, commits and pushes every repo except
 Everything shared lives here **once**: `scripts/lint.py` (also the shared library:
 frontmatter, notes, fences, secrets, slugify, clip, transcript layout),
 `scripts/newnote.sh`, `scripts/review.py`, `scripts/import-copilot.py`,
+`scripts/import-memory.py`, `scripts/export-copilot-sessions.py`,
 `.githooks/pre-commit`, `_templates/`, `tags.txt`, `RULES.md`, `WORKING-RULES.md`,
 `scripts/watcher.py`, `.editorconfig`, `docs/`. The watcher's household context
 and folder list are **not** here — they live in the target repo's

@@ -41,7 +41,7 @@ def find_repo_root() -> Path:
 # Machinery, not notes. `setup/` holds launchd plists, shell config and the
 # operational docs symlinked to the vault root — none of which carry
 # frontmatter, and all of which would otherwise be linted as notes.
-SKIP_DIRS = {".git", ".githooks", "_templates", "scripts", "setup",
+SKIP_DIRS = {".git", ".githooks", "_templates", "scripts", "setup", "docs",
              "node_modules"}
 
 # Files that live in a repo but are documentation, not notes: no frontmatter
@@ -207,22 +207,50 @@ def check_date(value: str) -> str | None:
     return None
 
 
-def body_lines_outside_code(text: str):
-    """Yield (lineno, line) for body lines, skipping fenced code blocks."""
-    in_fence = False
-    fence = ""
-    for idx, line in enumerate(text.splitlines()):
+def fence_map(lines: list[str]) -> tuple[list[bool], list[str | None]]:
+    """The one fence-state machine. For each line: hidden[i] is True when the
+    line is a fence delimiter or inside a fence; open_before[i] is the marker of
+    the fence open when the line begins (None when none). Every consumer that
+    cares about fences — lint's link scan, the importer's escaping — walks this,
+    so the two can never disagree about what is code."""
+    hidden, open_before = [], []
+    fence: str | None = None
+    for line in lines:
+        open_before.append(fence)
         stripped = line.lstrip()
         if stripped.startswith("```") or stripped.startswith("~~~"):
             marker = stripped[:3]
-            if not in_fence:
-                in_fence, fence = True, marker
+            if fence is None:
+                fence = marker
             elif marker == fence:
-                in_fence = False
+                fence = None
+            hidden.append(True)
             continue
-        if in_fence:
+        hidden.append(fence is not None)
+    return hidden, open_before
+
+
+def body_lines_outside_code(text: str):
+    """Yield (lineno, line) for lines that are not code."""
+    lines = text.splitlines()
+    hidden, _ = fence_map(lines)
+    for idx, line in enumerate(lines):
+        if not hidden[idx]:
+            yield idx + 1, line
+
+
+def find_secrets(text: str) -> list[tuple[str, int]]:
+    """Every (label, lineno) where a SECRET_PATTERN matches, honouring the
+    lint:allow marker. Lint, the watcher's hold-back and the importer's re-scan
+    all ask this one question; this is its one answer."""
+    hits = []
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        if ALLOW_MARKER in line:
             continue
-        yield idx + 1, line
+        for label, pattern in SECRET_PATTERNS:
+            if pattern.search(line):
+                hits.append((label, lineno))
+    return hits
 
 
 def check_file_sizes() -> list[Problem]:
@@ -257,14 +285,13 @@ def check_file_sizes() -> list[Problem]:
     return problems
 
 
-def collect_notes() -> list[Path]:
-    notes = []
-    for path in sorted(REPO_ROOT.rglob("*.md")):
-        rel = path.relative_to(REPO_ROOT)
-        if any(part in SKIP_DIRS for part in rel.parts):
-            continue
-        notes.append(path)
-    return notes
+def collect_notes(root: Path | None = None) -> list[Path]:
+    """Every .md that is a note or a root doc in `root` (default: the repo being
+    linted). The one definition of which files count; review.py and the
+    importers use it too."""
+    root = root or REPO_ROOT
+    return [p for p in sorted(root.rglob("*.md"))
+            if not any(part in SKIP_DIRS for part in p.relative_to(root).parts)]
 
 
 def main(local=None) -> int:
@@ -392,12 +419,8 @@ def main(local=None) -> int:
                         warning=True))
 
         # Secret scan runs on every markdown file, docs included.
-        for lineno, line in enumerate(text.splitlines(), start=1):
-            if ALLOW_MARKER in line:
-                continue
-            for label, pattern in SECRET_PATTERNS:
-                if pattern.search(line):
-                    problems.append(Problem(path, lineno, f"possible {label} committed"))
+        for label, lineno in find_secrets(text):
+            problems.append(Problem(path, lineno, f"possible {label} committed"))
 
     # The repo's own rules — the delta, the way AGENTS.md is the delta over
     # RULES.md — join this report, so there is one summary line and one exit code.

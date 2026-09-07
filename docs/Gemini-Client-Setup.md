@@ -25,7 +25,7 @@ capture — do not strip them at triage.
 
 ---
 
-# give it the files
+# Give it the files
 
 ## There is no connector route here
 

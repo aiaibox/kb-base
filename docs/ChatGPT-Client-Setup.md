@@ -24,7 +24,7 @@ unzipping anything into `~/Downloads`.
 
 ---
 
-# connect the vault
+# Connect the vault
 
 ## GitHub connector — ~5 min, once
 

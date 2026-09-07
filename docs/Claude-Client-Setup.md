@@ -23,7 +23,7 @@ destination and drop the walk.
 
 ---
 
-# give it the vault through a Project
+# Give it the vault through a Project
 
 Everything in a Project's **knowledge** is visible to every conversation in that
 Project. That is the persistence mechanism — a file dropped into one

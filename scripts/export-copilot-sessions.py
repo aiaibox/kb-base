@@ -382,6 +382,8 @@ def export_memory(out: Path, dry_run: bool) -> int:
     titles, origins = vault_index()
     rows = []
     for p in sorted(files):
+        if "memory-tool/memories/" not in str(p):
+            print(f"  skip (not under memories/): {p}"); continue
         scope = "global" if "/globalStorage/" in str(p) else project_name(workspace_folder(Path(str(p).split("/GitHub.copilot-chat/")[0])))
         parts = str(p).split("memory-tool/memories/")[1].split("/")
         if len(parts) > 1 and parts[0] != "repo":

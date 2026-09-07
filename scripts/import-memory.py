@@ -10,9 +10,9 @@ Markdown files Copilot wrote with its memory tool, laid out as
 
 A memory note is already a distillation, so nothing is clipped or restructured.
 The first `#` heading becomes the title (else the file name); the rest is the
-body, appended below frontmatter that newnote.sh writes. Everything else
-follows import-copilot.py, whose redact() and prose_safe() this imports rather
-than copies:
+body, appended below frontmatter that newnote.sh writes. Redaction, prose
+safety, tag resolution and the re-scan are lint's shared helpers, as in
+import-copilot.py:
 
   * Filed RAW and never sent to any API; tagged `import, needs-review`.
   * `created:`/`updated:` are the file's modified date — the last time Copilot
@@ -26,21 +26,14 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import importlib.util
 import subprocess
 import sys
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE / "scripts"))
-from lint import collect_notes, find_repo_root, find_secrets, slugify, split_frontmatter  # noqa: E402
-
-# redact() and prose_safe() live in import-copilot.py; import the sibling rather
-# than copy them. Its top level only defines constants, so importing is inert.
-_spec = importlib.util.spec_from_file_location("import_copilot", BASE / "scripts" / "import-copilot.py")
-_ic = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_ic)
-redact, prose_safe = _ic.redact, _ic.prose_safe
+from lint import (collect_notes, find_repo_root, slugify, split_frontmatter,  # noqa: E402
+                  redact, prose_safe, survivors, resolve_tags)
 
 REPO_ROOT = Path(".")
 BASE_TAGS = ["import", "needs-review"]
@@ -108,10 +101,6 @@ def render(n: dict) -> tuple[list[str], int]:
     return prose_safe(lines), redactions
 
 
-def survivors(lines: list[str]) -> list[str]:
-    return sorted({label for label, _ in find_secrets("\n".join(lines))})
-
-
 def write_note(n: dict, lines: list[str], tags: str, dry_run: bool) -> Path:
     base = f"inbox/{n['when']}-{slugify(n['title'], n['origin'].split('/')[-1][:20])}"
     rel, k = base, 2
@@ -143,14 +132,7 @@ def main() -> int:
     REPO_ROOT = args.repo.resolve() if args.repo else find_repo_root()
     if not (REPO_ROOT / "AGENTS.md").exists() or not (REPO_ROOT / ".git").exists():
         print(f"not a vault repo: {REPO_ROOT}", file=sys.stderr); return 1
-    vocab = {l.strip() for l in (BASE / "tags.txt").read_text().splitlines() if l.strip() and not l.startswith("#")}
-    bad = [t for t in args.tag if t not in vocab]
-    if bad:
-        print(f"tag(s) not in tags.txt: {', '.join(bad)}", file=sys.stderr); return 1
-    tags = BASE_TAGS + [t for t in args.tag if t not in BASE_TAGS]
-    if len(tags) > 5:
-        print(f"too many tags ({len(tags)}); lint allows 5", file=sys.stderr); return 1
-    tag_str = ", ".join(tags)
+    tag_str = resolve_tags(BASE_TAGS, args.tag)
 
     files = sorted({f for p in args.paths for f in ([p] if p.is_file() else p.rglob("*.md"))
                     if f.name not in INDEX_NAMES})

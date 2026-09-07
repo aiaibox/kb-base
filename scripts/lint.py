@@ -239,6 +239,67 @@ def raw_transcript(meta: list[str], remarks: list[str], turns: list) -> list[str
     return body
 
 
+# ---- importer helpers: redaction, prose safety, tag resolution -----------
+
+KEY_BEGIN = re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----")
+KEY_END = re.compile(r"-----END (?:[A-Z ]+ )?PRIVATE KEY-----")
+
+
+def redact(lines: list[str]) -> tuple[list[str], int]:
+    """Remove private-key blocks whole; replace every other secret hit."""
+    out, in_key, n = [], False, 0
+    for line in lines:
+        if in_key:
+            if KEY_END.search(line):
+                in_key = False
+            continue
+        if KEY_BEGIN.search(line):
+            in_key, n = True, n + 1
+            out.append("<redacted: private key block>")
+            continue
+        for label, pat in SECRET_PATTERNS:
+            if label == "private key block":
+                continue
+            line, k = pat.subn(f"<redacted:{label.replace(' ', '-').replace('/', '-')}>", line)
+            n += k
+        out.append(line)
+    return out, n
+
+
+def prose_safe(lines: list[str], close_before: tuple[str, ...] = ()) -> list[str]:
+    """Escape [[ outside fences (lint chases wikilinks); close any fence still
+    open at the end — or before any line starting with one of `close_before`
+    (an importer's turn heading) — so one stray ``` cannot swallow the rest."""
+    out: list[str] = []
+    for line in lines:
+        _, open_before = fence_map(out + [line])
+        if open_before[-1] and line.startswith(close_before or ("\0",)):
+            out.append(open_before[-1])         # close the runaway fence first
+        hidden, _ = fence_map(out + [line])
+        out.append(line if hidden[-1] else line.replace("[[", "\\[\\["))
+    _, open_before = fence_map(out + [""])
+    if open_before[-1]:
+        out.append(open_before[-1])
+    return out
+
+
+def survivors(lines: list[str]) -> list[str]:
+    """Secret labels still present after redaction. Non-empty means refuse."""
+    return sorted({label for label, _ in find_secrets("\n".join(lines))})
+
+
+def resolve_tags(base_tags: list[str], extra: list[str], limit: int = MAX_TAGS) -> str:
+    """base tags plus --tag extras as the `tags:` value; every tag must be in
+    tags.txt and the total within lint's cap. Exits with the reason otherwise."""
+    vocab = load_vocabulary() or set()
+    bad = [t for t in extra if t not in vocab]
+    if bad:
+        sys.exit(f"tag(s) not in tags.txt: {', '.join(bad)}")
+    tags = list(base_tags) + [t for t in extra if t not in base_tags]
+    if len(tags) > limit:
+        sys.exit(f"too many tags ({len(tags)}); lint allows {limit}")
+    return ", ".join(tags)
+
 def check_date(value: str) -> str | None:
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", value):
         return "must be an ISO date (YYYY-MM-DD)"

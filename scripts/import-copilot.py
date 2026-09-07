@@ -45,8 +45,8 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent   # kb-base: lint, newnote, tags, templates
 sys.path.insert(0, str(BASE / "scripts"))
-from lint import (SECRET_PATTERNS, collect_notes, fence_map, find_secrets,  # noqa: E402
-                  find_repo_root, slugify, clip, raw_transcript)
+from lint import (collect_notes, find_repo_root, slugify, clip, raw_transcript,  # noqa: E402
+                  redact, prose_safe, survivors, resolve_tags)
 
 REPO_ROOT = Path(".")                            # set in main(): --repo, else the work tree run in
 INBOX = REPO_ROOT / "inbox"
@@ -59,8 +59,6 @@ TURN_HDR = re.compile(r"^# TURN (\d+)\s+(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}Z
 USER, ASSISTANT = "----- USER -----", "----- ASSISTANT -----"
 UUID_RE = re.compile(r"^SESSION ([0-9a-f-]{36})\s*$", re.M)
 DATE = r"(\d{4}-\d{2}-\d{2})"
-KEY_BEGIN = re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----")
-KEY_END = re.compile(r"-----END (?:[A-Z ]+ )?PRIVATE KEY-----")
 SESSION_LINE = re.compile(r"^\*\*Session:\*\* ([0-9a-f-]{36})", re.M)
 BASE_TAGS = ["import", "needs-review"]
 TAGS = ", ".join(BASE_TAGS)                      # extended by --tag in main()
@@ -120,45 +118,6 @@ def parse_session(text: str, path: Path) -> dict | None:
             "title": title, "title_fallback": fallback, "created": created,
             "updated": updated or created, "models": field("Models"),
             "turns": turns, "file": f"{path.parent.parent.name}/{path.parent.name}/{path.name}"}
-
-
-def redact(lines: list[str]) -> tuple[list[str], int]:
-    """Remove private-key blocks whole; replace every other secret hit."""
-    out, in_key, n = [], False, 0
-    for line in lines:
-        if in_key:
-            if KEY_END.search(line):
-                in_key = False
-            continue
-        if KEY_BEGIN.search(line):
-            in_key, n = True, n + 1
-            out.append("<redacted: private key block>")
-            continue
-        for label, pat in SECRET_PATTERNS:
-            if label == "private key block":
-                continue
-            line, k = pat.subn(f"<redacted:{label.replace(' ', '-').replace('/', '-')}>", line)
-            n += k
-        out.append(line)
-    return out, n
-
-
-def prose_safe(lines: list[str]) -> list[str]:
-    """Escape [[ outside fences (lint chases wikilinks); close any fence still
-    open at a turn boundary or at the end, so one stray ``` cannot swallow the
-    rest of the note. Fence state comes from lint's fence_map, so this and lint
-    can never disagree about what is code."""
-    out: list[str] = []
-    for line in lines:
-        _, open_before = fence_map(out + [line])
-        if open_before[-1] and line.startswith("### User — turn "):
-            out.append(open_before[-1])         # close the runaway fence first
-        hidden, _ = fence_map(out + [line])
-        out.append(line if hidden[-1] else line.replace("[[", "\\[\\["))
-    _, open_before = fence_map(out + [""])
-    if open_before[-1]:
-        out.append(open_before[-1])
-    return out
 
 
 def clip_turns(turns: list[dict], budget: int):
@@ -227,7 +186,7 @@ def render(s: dict, budget: int) -> tuple[list[str], int, str]:
 
     lines = "\n".join(raw_transcript(meta, remarks, turns)).split("\n")
     lines, redactions = redact(lines)
-    return prose_safe(lines), redactions, clip_note
+    return prose_safe(lines, close_before=("### User — turn ",)), redactions, clip_note
 
 def already_imported() -> set[str]:
     seen: set[str] = set()
@@ -237,11 +196,6 @@ def already_imported() -> set[str]:
         except (UnicodeDecodeError, OSError):
             pass
     return seen
-
-
-def survivors(lines: list[str]) -> list[str]:
-    """Secret labels still present after redaction. Non-empty means refuse."""
-    return sorted({label for label, _ in find_secrets("\n".join(lines))})
 
 
 def write_note(s: dict, lines: list[str], dry_run: bool) -> Path | None:
@@ -277,14 +231,7 @@ def main() -> int:
     INBOX = REPO_ROOT / "inbox"
     if not (REPO_ROOT / "AGENTS.md").exists() or not (REPO_ROOT / ".git").exists():
         print(f"not a vault repo: {REPO_ROOT}", file=sys.stderr); return 1
-    vocab = {l.strip() for l in (BASE / "tags.txt").read_text().splitlines() if l.strip() and not l.startswith("#")}
-    bad = [t for t in args.tag if t not in vocab]
-    if bad:
-        print(f"tag(s) not in {REPO_ROOT.name}/tags.txt: {', '.join(bad)}", file=sys.stderr); return 1
-    tags = BASE_TAGS + [t for t in args.tag if t not in BASE_TAGS]
-    if len(tags) > 5:
-        print(f"too many tags ({len(tags)}); lint allows 5", file=sys.stderr); return 1
-    TAGS = ", ".join(tags)
+    TAGS = resolve_tags(BASE_TAGS, args.tag)
 
     files = sorted({f for p in args.paths for f in ([p] if p.is_file() else p.rglob("*.txt"))})
     if not files:

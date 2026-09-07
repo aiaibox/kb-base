@@ -37,7 +37,10 @@ cd ~/kb/personal    # or kbp / kbb / kbu
    runs base's rules then its own; the pre-commit hook enforces it.
 4. **Nothing is promoted to `public/` by moving it.** Write a fresh sanitised
    note; leave the original where it is.
-5. **Never create a folder outside the declared sets** in `RULES.md` §2. A
+5. **Merge before you create.** Look for the note that already answers the
+   question and extend it; a new note needs a reason. Delete what has no value for
+   future reference — a capture with no conclusion is not a record. `RULES.md` §7.
+6. **Never create a folder outside the declared sets** in `RULES.md` §2. A
    *declared* folder that is missing was lost to git not tracking directories —
    recreate it and add a `.gitkeep`.
 

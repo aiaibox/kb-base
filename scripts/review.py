@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -71,7 +72,7 @@ def scan(stale_days: int) -> dict:
         repo = KB / name
         if not repo.is_dir():
             continue
-        r = {"total": 0, "unreadable": 0, "volatile": 0,
+        r = {"total": 0, "unreadable": 0, "volatile": 0, "all": [],
              "inbox": [], "stale_volatile": [],
              "todo": {t: [] for t in TODO_TAGS}, "opaque": name in OPAQUE}
         for p, rel in notes(repo):
@@ -85,6 +86,7 @@ def scan(stale_days: int) -> dict:
             item = {"path": str(rel), "title": title,
                     "updated": f.get("updated", ""),
                     "suggested": f.get("suggested_folder", "").strip()}
+            r["all"].append(item)
             if rel.parts[0] == "inbox":
                 # Inbox age is time since ARRIVAL. Imported notes carry their
                 # content date in created:, so prefer the import date that the
@@ -192,6 +194,31 @@ def main() -> int:
         print(f"  {TICK} none due yet. These decay by nature — prices, fees, "
               f"quotas, policies")
 
+    # --- Merge candidates ------------------------------------------------
+    # RULES.md §7: merge first. Pairs of notes in one repo whose titles share
+    # three or more significant words are the cheapest signal that two notes
+    # answer one question. Listed, never acted on — merging is a judgement.
+    STOP = set("the and for with from that this into your when which where what how not but are was were "
+               "been have has had can could should would will may might over under than then them they "
+               "their about after before onto only also more less most very just like same".split())
+    pairs = []
+    for name, r in data.items():
+        if r["opaque"]:
+            continue
+        words = [(i, {w for w in re.findall(r"[a-z0-9]{4,}", i["title"].lower()) if w not in STOP})
+                 for i in r["all"]]
+        for x in range(len(words)):
+            for y in range(x + 1, len(words)):
+                shared = words[x][1] & words[y][1]
+                if len(shared) >= 3:
+                    pairs.append((len(shared), name, words[x][0], words[y][0]))
+    pairs.sort(key=lambda t: -t[0])
+    print(f"\nMerge candidates — {len(pairs)} pair(s) sharing 3+ title words")
+    for n, name, a, b in pairs[:cap or len(pairs)]:
+        print(f"  [{n}] {name}{DOT} {a['path']}\n      {DOT} {b['path']}")
+    if cap and len(pairs) > cap:
+        print(f"          … {len(pairs) - cap} more (--all)")
+
     # --- Machine checks ----------------------------------------------------
     print("\nChecks")
     for name in data:
@@ -224,6 +251,8 @@ def main() -> int:
         todo.append(f"Restate {pp} note(s) into public/ — a restatement, never a move")
     if rows:
         todo.append(f"Re-verify the {min(3, len(rows))} stalest volatile note(s)")
+    if pairs:
+        todo.append(f"Consider merging {len(pairs)} title-overlap pair(s) — RULES.md §7, merge first")
     print("\nThis week" if todo else f"\n{TICK} Nothing needs a human this week")
     for i, t in enumerate(todo, 1):
         print(f"  {i}. {t}")

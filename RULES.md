@@ -187,7 +187,7 @@ page.
 | **Decision** | Everything needed to re-evaluate later: the context that forced it, options considered and rejected *with reasons*, the decision, its consequences, and what would reverse it | `decisions/`, `finance/invest/`, `business/systems/incidents/`, and anything tagged `decision`, `thesis` or `position` |
 | **Reference** | The conclusion, the numbers, and where they came from. Drop the derivation | `notes/glossary/`, `tech/infra/`, `howto/`, and anything tagged `reference` or `benchmark` |
 | **Volatile** | The figure, the date it was observed, and where to reverify. Nothing else | prices, fees, policies, availability, admissions rules |
-| **Discard** | Nothing. Do not create a note | one-off lookups, filler, near-duplicates of an existing note |
+| **Discard** | Nothing. Do not create a note — and delete one that was created | one-off lookups, filler, near-duplicates of an existing note, and **any captured exchange that reached no conclusive statement or result** — a one- or two-turn session that ends without an answer has nothing to keep |
 
 The test for Decision tier: **would a stranger — or you in two years — understand
 why, and be able to disagree?** If the reasoning is missing, the note is a
@@ -394,10 +394,26 @@ Inline code is exempt, so documentation can write `[[slug]]` as an example.
   rule is inert unless its path matches the live layout.
 - **Frozen after sign-off:** `business/systems/incidents/`. Correct the record
   in a new note.
-- **Supersede, do not delete:** mark stale content `> superseded by [[slug]]` and
-  leave it. The history of a wrong belief is often the useful part.
-  **This applies to notes only.** Scripts, docs, templates and config are tools,
-  not records — when one is redundant, delete it. See `WORKING-RULES.md` §7.
+- **Merge first.** Before writing a new note, search for the one that already
+  answers the question — `kbs`, the topic notes, the weekly digest's merge
+  candidates — and fold the new material into it, bumping `updated:`. Adjacent
+  questions on one subject belong in **one readable note with sections**, not in
+  several thin siblings; when the combined note no longer fits a screen or two,
+  that is what a `topic` note is for. Fewer, denser notes search better than many
+  small ones. Merging is the default; a new note is the exception that needs a
+  reason.
+- **Value test before anything is kept.** Ask: *will this be worth finding in a
+  year?* A note that records a conclusion, a decision, a verified procedure, a
+  number with its date, or a rejected option with its reason passes. A note that
+  records only that a conversation happened — no result, no decision, nothing
+  reusable — fails, and is **deleted**, not superseded. Short captures fail this
+  test most often.
+- **Supersede a belief; delete a nothing.** When a note recorded something that
+  was believed and later revised, mark it `> superseded by [[slug]]` and leave
+  it — the history of a wrong belief is often the useful part. When a note never
+  had future-reference value, delete it. **Supersession is for notes only.**
+  Scripts, docs, templates and config are tools, not records — when one is
+  redundant, delete it. See `WORKING-RULES.md` §7.
 - **`inbox/` is the only unstructured folder.** Triage weekly. An item older than
   30 days is either filed or deleted — never left to rot.
 - **Volatile notes** whose observation date is over a year old are reverified or

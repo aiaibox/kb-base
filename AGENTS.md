@@ -43,7 +43,9 @@ cd ~/kb/personal    # or kbp / kbb / kbu
    **Conclusions, not discussion:** a note holds the answer, its check, its dated
    numbers and the options that lost — never the conversation. Soft ceiling 400
    lines: split by question or compress before adding more; 600 is the hard stop.
-   `RULES.md` §4.
+   The merge procedure, the split procedure and the four cases where merging is
+   *wrong* (a frozen record, a repo boundary, a worthless note, a title
+   coincidence) are `RULES.md` §4 — follow them, do not improvise.
 6. **Never create a folder outside the declared sets** in `RULES.md` §2. A
    *declared* folder that is missing was lost to git not tracking directories —
    recreate it and add a `.gitkeep`.

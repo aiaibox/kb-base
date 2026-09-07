@@ -89,6 +89,11 @@ for the same thing, keep both with dates as `> superseded …`; never silently p
   Leave a one-line pointer where a section moved.
 - **Every figure carries its date and where it came from.** Every command is
   verbatim with a Verify line. Every source is cited to the turn.
+- **The procedures are rules, not taste:** RULES §4 gives the merge steps (pick
+  the living target, fold don't append, date the conflicts, repoint then delete),
+  the split steps (cut on the question, each part whole, one pointer each way),
+  and the four cases where merging is wrong. Two tests decide whether it worked:
+  a merge is shorter than the sum of its sources; each split part reads alone.
 - **Sections** (RULES §3): Scope · Conclusion · Verify · Decided · Facts ·
   Rejected · Failures · Open · References/Sources. Omit empty ones; never pad.
 - Titles name the specific finding (≤60 chars). Tags are facets from

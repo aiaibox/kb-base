@@ -337,6 +337,63 @@ with its own Scope, Conclusion and Verify, not as "part 2 of". If a merge or a
 split does not leave the reader better off than the originals, it was the wrong
 operation.
 
+### How to merge
+
+1. **Pick the target, never create one.** The living note on that subject wins:
+   the `topic` note, else the oldest note that already answers the question. It
+   keeps its `id` and its filename; a merge never mints a new note. If no note
+   answers the question yet, the *first* source becomes the target and is
+   renamed to a plain slug.
+2. **Decide the section order from the reader's path**, not from the sources'
+   dates: what the answer is, how to check it, what the numbers are, what lost,
+   what broke, what is open. One `## Sources` list at the end.
+3. **Fold, do not append.** Each source's Conclusion joins the target's
+   Conclusion or becomes one row in a decisions table; its Verify checks join
+   the Verify block if they still make sense; its Facts, Rejected and Failures
+   merge into the target's, deduped. Never leave a source's Scope boilerplate,
+   footer or "distilled from an N-turn conversation" line.
+4. **Conflicts are dated, not resolved by choice.** When two sources disagree,
+   the later reading is the current text and the earlier stays inline as
+   `> superseded 2026-09-06: …`. Two measurements of the same run keep both with
+   their dates and methods.
+5. **Dates and tags:** `created:` becomes the earliest source's date, `updated:`
+   today. Tags are the union, trimmed to five by dropping the least
+   discriminating; add `topic` once the note gathers three or more others.
+6. **Repoint, then delete.** Grep every repo for each consumed slug and repoint
+   the wikilinks and index entries at the target *before* deleting the source.
+   Consumed sources are deleted, never left as stubs or redirects — git holds
+   the history.
+
+### How to split
+
+1. **Cut on the question boundary**, never at a line count. Name each part by
+   the question it answers; if you cannot name it in a searchable title, it is a
+   section and the cut is wrong.
+2. **The original keeps its `id`** and becomes either the shortest part or a map
+   over the parts. New parts come from `newnote.sh` with `created:` set to the
+   earliest date of the material they carry.
+3. **Each part is whole:** its own Scope, Conclusion, Verify, Facts, Open and
+   Sources for the material it holds. No "continued from", no shared preamble.
+4. **One pointer line each way**, and nothing else duplicated: a figure, table
+   or command appears in exactly one part.
+5. **Repoint every inbound link** and both index entries; a split that leaves a
+   dangling `[[slug]]` has not happened yet (lint will say so).
+6. **Delete the scaffolding.** Sentences about the note's own size ("moved here
+   to stay under the ceiling") are false the moment the split lands.
+
+### When not to merge
+
+- **A frozen record.** `business/systems/incidents/` and anything past sign-off
+  is corrected by a new note or a catalogue row, never by folding it into
+  something else. Same for append-only logs.
+- **Across a repo boundary.** Two notes on one subject in different repos are a
+  sensitivity split (RULES §2), not a duplicate. Restate what each side needs.
+- **A note that fails the value test.** Delete it; do not dilute a good note
+  with it.
+- **A title coincidence.** The weekly digest's merge candidates share words, not
+  questions. They are candidates for a human decision, and the answer is often
+  "no, these are two questions".
+
 ### Creating notes
 
 ```
@@ -409,7 +466,9 @@ Inline code is exempt, so documentation can write `[[slug]]` as an example.
   several thin siblings; when the combined note no longer fits a screen or two,
   that is what a `topic` note is for. Fewer, denser notes search better than many
   small ones. Merging is the default; a new note is the exception that needs a
-  reason.
+  reason. The digest's candidates share title words, not questions — they are a
+  prompt to decide, not an instruction to merge. **How** to merge and split, and
+  when not to, is §4.
 - **Value test before anything is kept.** Ask: *will this be worth finding in a
   year?* A note that records a conclusion, a decision, a verified procedure, a
   number with its date, or a rejected option with its reason passes. A note that

@@ -64,8 +64,9 @@ Everything shared lives here **once**: `scripts/lint.py` (also the shared librar
 frontmatter, notes, fences, secrets, slugify, clip, transcript layout),
 `scripts/newnote.sh`, `scripts/review.py`, `scripts/import-copilot.py`,
 `.githooks/pre-commit`, `_templates/`, `tags.txt`, `RULES.md`, `WORKING-RULES.md`,
-`.editorconfig`, `docs/`. `watcher.py` stays in `personal` — its household
-context is not public. Nothing is copied or distributed.
+`scripts/watcher.py`, `.editorconfig`, `docs/`. The watcher's household context
+and folder list are **not** here — they live in the target repo's
+`scripts/watcher.config.json`, which the engine reads at run time. Nothing is copied or distributed.
 Each content repo points its hooks here (`git config core.hooksPath
 ../base/.githooks`, per clone) and has an 8-line `scripts/lint.py` that imports
 this repo's and calls `main(local=check)` with its own rules — `public` bans

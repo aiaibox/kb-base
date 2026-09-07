@@ -412,7 +412,7 @@ committed once is committed forever, and rewriting history is unreliable.
 ## 9. Before finishing
 
 ```
-python3 ../base/scripts/lint.py
+python3 scripts/lint.py
 ```
 
 The pre-commit hook runs it and refuses the commit on failure. `--no-verify`

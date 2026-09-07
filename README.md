@@ -16,7 +16,7 @@ mkdir kb && cd kb
 git clone https://github.com/aiaibox/kb-base   base
 git clone https://github.com/aiaibox/kb-public public     # or your own
 git -C public config core.hooksPath ../base/.githooks
-cd public && python3 ../base/scripts/lint.py
+cd public && python3 scripts/lint.py
 ```
 
 Everything is Python 3.9+ standard library and POSIX shell. No dependencies.

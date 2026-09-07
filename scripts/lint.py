@@ -17,16 +17,15 @@ nothing installed but Python.
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import subprocess
 import datetime as dt
 import re
 import sys
 from pathlib import Path
 
-# One copy of this file lives in kb-base. The repo being linted is the git work
-# tree the command is run in — never the location of this file — so the same
-# copy serves every repo. Set in main(); None while imported as a library.
+# One copy of this file lives in kb-base. Each repo's scripts/lint.py imports it
+# and calls main(local=<its own rules>). The repo being linted is the git work
+# tree the command runs in — never the location of this file.
 BASE_ROOT = Path(__file__).resolve().parent.parent
 REPO_ROOT: Path = Path(".")
 REPO_NAME = ""
@@ -268,7 +267,9 @@ def collect_notes() -> list[Path]:
     return notes
 
 
-def main() -> int:
+def main(local=None) -> int:
+    """Lint the repo the command runs in. `local(repo_root, notes) -> [Problem]`
+    is the repo's own rule set, passed in by <repo>/scripts/lint.py."""
     global REPO_ROOT, REPO_NAME
     REPO_ROOT = find_repo_root()
     REPO_NAME = REPO_ROOT.name
@@ -398,18 +399,10 @@ def main() -> int:
                 if pattern.search(line):
                     problems.append(Problem(path, lineno, f"possible {label} committed"))
 
-    # Repo-specific rules live in <repo>/scripts/lint-local.py — the delta, the
-    # way AGENTS.md is the delta over RULES.md. It returns Problems into this
-    # same report, so there is one summary line and one exit code.
-    local = REPO_ROOT / "scripts" / "lint-local.py"
-    if local.exists():
-        # The local module does `from lint import Problem`. Without this it would
-        # get a SECOND copy of this file whose REPO_ROOT was never set, and every
-        # finding it returned would crash on render.
-        sys.modules["lint"] = sys.modules[__name__]
-        spec = importlib.util.spec_from_file_location("lint_local", local)
-        mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
-        problems.extend(mod.check(REPO_ROOT, notes))
+    # The repo's own rules — the delta, the way AGENTS.md is the delta over
+    # RULES.md — join this report, so there is one summary line and one exit code.
+    if local is not None:
+        problems.extend(local(REPO_ROOT, notes))
 
     for problem in sorted(problems, key=lambda p: (str(p.path), p.line)):
         print(problem.render(), file=sys.stderr)

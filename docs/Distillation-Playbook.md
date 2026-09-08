@@ -16,6 +16,7 @@ duplicating it, or leaking it. Read it before any import, triage, merge or audit
 | Every Gemini export was labelled "ChatGPT" | Header trusted over filename | Fixed in `watcher.py` (filename prefix wins). Verify labels at triage |
 | Live S3 keys, TLS private keys, PATs, a Redis password and a kubeconfig `client-key-data` sat in raw exports | People paste configs into chats | **Reference the Secret's name or path, never the value.** List exposures for rotation in the report |
 | 79 one-conversation notes on one subject each | The watcher makes one note per chat by design | **Merge first.** A subject gets one topic note; a chat adds a section |
+| A completeness audit reported full coverage while 40 memory notes, three pre-built KB folders and 43 tool-output payloads were never in it | The partition was built with a `*.txt` glob, and coverage was asserted from the plan instead of the filesystem | **Enumerate the whole tree by extension first** (`find … | sed 's/.*\.//' | sort | uniq -c`), partition from that list, and re-run the enumeration at the end |
 | Coverage check by URL said 61 of 89 exports were cited | The browser exporter stamped two consecutive exports with the same URL | **Cite exports by file name and turn; a URL is a hint, not an identity** |
 | `rm` aliased to `rm -i` made agents believe they had deleted files | Interactive alias in a non-interactive shell | Agents use `/bin/rm -f`; the coordinator verifies with `ls` |
 
@@ -122,8 +123,17 @@ for the same thing, keep both with dates as `> superseded …`; never silently p
 1. `python3 scripts/lint.py` clean in every repo; topic-link warnings resolved
    where a natural link exists.
 2. Both inboxes empty; no `needs-review` on a finished note.
-3. Coverage: every export's session id or URL is cited by at least one note, or
-   its discard is recorded with a reason.
+3. Coverage, measured against a fresh enumeration of the export tree, not
+   against the plan: every conversation file's session id, URL **or file name**
+   is cited by a note, or its discard is recorded with a reason. Then account
+   for the non-conversation members of the same tree, each with a verdict:
+   already-distilled KB packages (audit them like any source), memory notes
+   (check the importer ever pointed at that tree), tool-call payloads (they hold
+   what a transcript says it omitted — measurements live here), archives (prove
+   each is a copy by name-and-hash, not by size), file snapshots and generated
+   reports (code and artefacts, out of scope), and loose documents (identity,
+   tax, medical: never vault material, and worth telling the owner they are
+   sitting unencrypted).
 4. `grep` the vault for the status patterns of §4 and for anything that looks
    like a key; anything found moves or goes.
 5. `private` was never read, listed or summarised; only written to.

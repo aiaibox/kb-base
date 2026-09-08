@@ -21,6 +21,19 @@ Any session that modified the codebase closes with a summary table: which files
 changed, and lines added/removed. Cover deletions and files created outside the
 repos (LaunchAgents, shell config, Keychain entries) as well as tracked files.
 
+Two refinements, from the Claude Code sessions of 2026-09-03:
+
+- **Per turn, not only per session.** Every turn that changes files ends with its
+  own `git diff --stat`-style table, scoped to what that turn touched. Work is
+  reviewed by scope of change, not by prose: without the table nobody can tell
+  whether a "small fix" touched two files or twelve.
+- **Separate my hunks from yours.** Name the file and the line, show the actual
+  before → after of each edit, and keep the working tree's pre-existing
+  uncommitted changes in their own row. These changes get re-run against
+  production fleets, so the diff-level statement is the reviewable artefact —
+  produce it even when the turn was mostly diagnosis and one line changed. Say
+  explicitly what is left unverified.
+
 No changes means no table.
 
 ## 3. Finish the current request before reading the next

@@ -132,6 +132,28 @@ machinery — dotfiles, `scripts/`, `scripts/lint.py`, `AGENTS.md`, `CLAUDE.md`.
 rule is: if any *note* appears there, stop and fix `.gitattributes` before committing
 anything.
 
+**Block the agent from reading it, once per machine.** The vault's instruction
+file forbids reading `private/`, but instructions are advisory context, not
+enforcement. Add the deny rule to `~/.claude/settings.json` so the client refuses
+regardless:
+
+```
+python3 - <<'EOF'
+import json, pathlib
+p = pathlib.Path.home()/".claude/settings.json"
+d = json.loads(p.read_text()) if p.exists() else {}
+perms = d.setdefault("permissions", {}); deny = perms.setdefault("deny", [])
+rule = "Read(~/kb/private/**)"
+if rule not in deny: deny.append(rule)
+p.parent.mkdir(parents=True, exist_ok=True); p.write_text(json.dumps(d, indent=2) + "\n")
+print("deny:", deny)
+EOF
+```
+
+It covers the file tools, `@` mentions, IDE context and `cat`-style Bash reads.
+It does not cover a script that opens a file itself, which is why `newnote.sh`
+can still file a note there. Verify in a session with `/permissions`.
+
 ## 6. Enable the pre-commit hook in all four repos  · instant
 
 ```

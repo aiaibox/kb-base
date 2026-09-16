@@ -18,24 +18,30 @@ Aliases: `kb` `kbp` `kbb` `kbu` `kbpriv` `kbin` `kbsync`.
 
 ## Hard rules
 
-1. **Never read, list, summarise or quote `private/`.** Its working tree is
-   decrypted, so encryption does not stop you; this instruction does. If a task
-   seems to need something from there, stop and ask for that fact directly.
-2. **`../base/scripts/newnote.sh`, run inside the target repo, is the only way to
-   create a note.** It writes the ULID and the frontmatter, so nothing has to
+1. **IMPORTANT: never read, list, summarise or quote `private/`.** Its working
+   tree is decrypted, so encryption does not stop you. A `Read(~/kb/private/**)`
+   deny rule in `~/.claude/settings.json` blocks the file tools, `@` mentions,
+   IDE context and `cat`-style Bash reads; it does not block a script that opens
+   a file itself, so the instruction still carries the rest. If a task seems to
+   need something from there, stop and ask for that fact directly.
+2. `../base/scripts/newnote.sh`, run inside the target repo, is the only way to
+   create a note. It writes the ULID and the frontmatter, so nothing has to
    rewrite them afterwards.
-3. **`python3 scripts/lint.py` before finishing.** The pre-commit hook enforces it.
-4. **Nothing reaches `public/` by moving a file.** Restate the sanitised fact as a
+3. `python3 scripts/lint.py` before finishing. The pre-commit hook enforces it.
+4. Nothing reaches `public/` by moving a file. Restate the sanitised fact as a
    fresh note and leave the original where it is.
-5. **Merge before you create, and record conclusions rather than conversation.**
+5. Merge before you create, and record conclusions rather than conversation.
    Extend the note that already answers the question. 400 lines is the soft
    ceiling, 600 the hard stop. The merge and split procedures are `RULES.md` §4:
    follow them, do not improvise.
-6. **Never invent a folder.** The declared sets are `RULES.md` §2. A declared one
+6. Never invent a folder. The declared sets are `RULES.md` §2. A declared one
    that is missing was lost to git not tracking directories: recreate it with a
    `.gitkeep`.
-7. **Read `base/docs/Distillation-Playbook.md` before any import, triage, merge or
-   audit.** It carries the failure modes of the first full pass.
+7. Read `base/docs/Distillation-Playbook.md` before any import, triage, merge or
+   audit. It carries the failure modes of the first full pass.
+
+Run `/context` to confirm this file and the repo's own loaded; `/doctor` proposes
+trims for a checked-in instruction file.
 
 ## Where the detail lives
 

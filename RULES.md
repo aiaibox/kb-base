@@ -178,6 +178,20 @@ reappear; those invariants live on tags now.
 
 ## 3. How much detail — four tiers
 
+
+### Who a note is for, and what success is
+
+Three readers, wanting different things:
+
+- **You in a year**, who has forgotten the context and needs the answer, the check
+  that proves it, and the date it was true. The default reader everywhere but `public`.
+- **An agent with no memory of this session**, which needs the conclusion stated
+  flatly, because it cannot infer what you meant from a conversation it never saw.
+- **A stranger**, in `public` only, who has none of that and no stake in it.
+
+Success is not a tidy vault. It is that a question asked in a year is answered by
+one note, found with the words you would actually search for, without opening a
+second file or going back to the transcript.
 Depth follows **durability and reuse**, never the length of the source. A
 two-hour conversation may deserve four lines; a one-line decision may deserve a
 page.
@@ -403,6 +417,23 @@ operation.
 **This is the only correct way.** It generates the ULID. Writing a note file
 directly means inventing an `id`, and lint will reject it. An agent that cannot
 run the script should output the content and let a human create the note.
+
+### When two rules pull apart
+
+- **Completeness against conclusions-only.** Keep the result, the numbers with
+  their dates, the options that lost and why. Cut the path that produced them. If
+  you cannot tell which a detail is, ask whether someone re-running this would
+  need it.
+- **Merge first against one note, one question.** Merge wins until the combined
+  note answers two questions that would be searched for separately. Then split by
+  question. Line count is the symptom that prompts the look, never the reason.
+- **Reasoning against status** (§2 draws the line; this is what to do when one
+  sentence sits on it). Split the sentence, not the note: the method to
+  `personal`, the figure to `private`, with a pointer. A figure that cannot be
+  separated from its reasoning is status.
+- **Delete against supersede** is §7 below, and is not restated here.
+- **A note against its source.** The source wins. Correct the note, date the
+  correction, and keep what it used to say if anyone acted on it.
 
 ## 5. Tags
 

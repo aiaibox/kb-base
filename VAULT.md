@@ -6,6 +6,8 @@ below are. This file loads for every session in the vault. Each repo's own
 first** or its rules never load. Your working directory is then the repo root:
 never prefix a path with `kb/` or the repo name.
 
+## Structure — five repos
+
 | Repo | Ask before filing | Remote |
 |---|---|---|
 | `base/` | **No notes.** One copy of lint, newnote, templates, tags, rules, docs | public |
@@ -48,6 +50,32 @@ Aliases: `kb` `kbp` `kbb` `kbu` `kbpriv` `kbin` `kbsync`.
 
 Run `/context` to confirm this file and the repo's own loaded; `/doctor` proposes
 trims for a checked-in instruction file.
+
+## Commands
+
+There is no build. These are the whole surface, and they run from a repo root
+unless the path says otherwise.
+
+- `../base/scripts/newnote.sh --tags "a, b" <path/slug> "<title>" <template>` —
+  the only correct way to create a note. Templates: `note`, `runbook`,
+  `decision`, `incident`, `thesis`, `position`, `daily`.
+- `python3 scripts/lint.py` — this repo's rules on top of base's. Run before finishing.
+- `for r in ~/kb/*/; do (cd $r && python3 scripts/lint.py); done` — all five, after
+  changing anything in `base/`.
+- `~/kb/sync.sh` — pull, lint, commit and push every repo except `private`, which
+  it only pulls. A repo that fails lint is neither committed nor pushed.
+- `python3 ~/kb/base/scripts/review.py` — the weekly digest: inbox age, merge
+  candidates, stale volatile notes, lint and git state.
+- `kbs <term>` searches note bodies, `kbo <slug>` opens one in Obsidian; both skip
+  `private`.
+
+## Testing and gates
+
+There is no test suite; correctness is enforced at two points. `scripts/lint.py`
+checks frontmatter, ULIDs, the tag vocabulary, wikilink resolution, note length,
+tag-anchored invariants and secret patterns, plus each repo's own rule. The
+`../base/.githooks/pre-commit` hook runs it again and refuses the commit. A clone
+without `base/` beside it silently runs no hooks at all.
 
 ## Where the detail lives
 

@@ -1,98 +1,29 @@
-# ~/kb — the vault, and kb-base
+# kb-base — the shared machinery
 
-Five sibling git repos under one Obsidian vault. This file is `kb-base`'s own
-and is also symlinked to `~/kb/AGENTS.md`, so it loads for any session started at
-the vault root. **Each content repo has its own `AGENTS.md` with the rules that
-matter there — start in the repo you intend to work in, or those never load.**
+No notes. One copy of everything the other four repos run: `scripts/` (lint and
+the shared library it exposes, newnote, watcher, review, the importers and
+exporters), `_templates/`, `tags.txt`, `.githooks/`, `RULES.md`,
+`WORKING-RULES.md`, `docs/`. Nothing here is copied or distributed; the repos
+reach in.
+
+**A change here changes every repo at once.** Before pushing:
 
 ```
-cd ~/kb/personal    # or kbp / kbb / kbu
+for r in ../*/; do (cd $r && python3 scripts/lint.py); done    # want five clean lines
 ```
 
-| Repo | Holds | Remote |
-|---|---|---|
-| `base/` | **No notes.** The one copy of lint, newnote, templates, tags, the rules, and the setup docs | public |
-| `public/` | Written for a stranger. World-readable, permanently | public |
-| `personal/` | **The default.** Preferences, systems, how you think about money and health | private |
-| `business/` | One employer: their systems, projects, colleagues | private |
-| `private/` | Status, not reasoning. Encrypted with git-crypt | private |
+## Rules
 
-## Read first
-
-- `base/RULES.md` — what a note must contain, which repo, folder sets, tags, tiers.
-- `base/WORKING-RULES.md` — how to behave: minimal output, exact CLI, name the
-  machine, estimate anything slow, end with a change table, delete redundancy.
-- `personal/tech/kb/kb-system.md` — architecture. `kb-directory-scaffold.md` —
-  where things go. `ai-access.md` — what any AI can and cannot see.
-
-## Hard rules
-
-1. **`private/` is never read, summarised, indexed, quoted or listed.** Its
-   working tree is decrypted, so encryption does not stop you — the instruction
-   does. If a task seems to need something from it, stop and ask.
-2. **`../base/scripts/newnote.sh`, run inside the target repo, is the only correct
-   way to create a note.** It takes `--tags`, `--created`, `--updated` and
-   `--field`, so nothing ever rewrites frontmatter afterward.
-3. **`python3 scripts/lint.py` before finishing.** Each repo's `scripts/lint.py`
-   runs base's rules then its own; the pre-commit hook enforces it.
-4. **Nothing is promoted to `public/` by moving it.** Write a fresh sanitised
-   note; leave the original where it is.
-5. **Merge before you create.** Look for the note that already answers the
-   question and extend it; a new note needs a reason. Delete what has no value for
-   future reference — a capture with no conclusion is not a record. `RULES.md` §7.
-   **Conclusions, not discussion:** a note holds the answer, its check, its dated
-   numbers and the options that lost — never the conversation. Soft ceiling 400
-   lines: split by question or compress before adding more; 600 is the hard stop.
-   The merge procedure, the split procedure and the four cases where merging is
-   *wrong* (a frozen record, a repo boundary, a worthless note, a title
-   coincidence) are `RULES.md` §4 — follow them, do not improvise.
-6. **Never create a folder outside the declared sets** in `RULES.md` §2. A
-   *declared* folder that is missing was lost to git not tracking directories —
-   recreate it and add a `.gitkeep`.
-
-## Capture pipeline
-
-Export a chat from the browser into `~/Downloads` → the `com.kb.watcher` launchd
-agent distils it (~30 s to fire, ~2 min to run) → a note lands in
-**`personal/inbox/`**, always, regardless of subject. Nothing is committed or
-pushed automatically. `com.kb.review` runs Monday 09:00 and reports what needs a
-human. `~/kb/sync.sh` pulls, lints, commits and pushes every repo except
-`private`, which it only pulls.
-
-## Setup and client docs — `base/docs/`
-
-- `New-Machine-Setup.md` — a fresh Mac, end to end
-- `Client-Setup.md` — capture from any browser chat, what a connected client can
-  see, loading the brief; then `ChatGPT-`, `Claude-`, `Gemini-Client-Setup.md`
-  for what differs per client
-- `web-brief.md` — model-facing; paste or upload as-is
-- `Distillation-Playbook.md` — **read before any import, triage, merge or audit**:
-  how to turn chat exports into few, dense, correct notes without leaking status
-  or secrets; the failure modes of the first full pass and the agent briefs that
-  fixed them
-
-## This repo — kb-base
-
-Everything shared lives here **once**: `scripts/lint.py` (also the shared library:
-frontmatter, notes, fences, secrets, slugify, clip, transcript layout),
-`scripts/newnote.sh`, `scripts/review.py`, `scripts/import-copilot.py`,
-`scripts/import-memory.py`, `scripts/export-copilot-sessions.py`, `scripts/export-claude-sessions.py`,
-`.githooks/pre-commit`, `_templates/`, `tags.txt`, `RULES.md`, `WORKING-RULES.md`,
-`scripts/watcher.py`, `.editorconfig`, `docs/`. The watcher's household context
-and folder list are **not** here — they live in the target repo's
-`scripts/watcher.config.json`, which the engine reads at run time. Nothing is copied or distributed.
-Each content repo points its hooks here (`git config core.hooksPath
-../base/.githooks`, per clone) and has an 8-line `scripts/lint.py` that imports
-this repo's and calls `main(local=check)` with its own rules — `public` bans
-private IPs and internal hostnames; `private` requires numeric filenames and
-decrypts every encrypted blob; `personal` and `business` have none. The tools
-derive the target repo from the git work tree they run in, never from where a
-file lives.
-
-- **A change here changes every repo at once.** Get five `clean` lines from
-  `for r in ../*/; do (cd $r && python3 scripts/lint.py); done` before pushing.
-- **Nothing private, ever.** No names, hosts or paths that identify a person or
-  employer. Lint secret-scans this repo's own files on every run.
-- **Adding a tag is a deliberate edit** to `tags.txt`.
-- If a content repo is cloned without this one beside it, `core.hooksPath` points
-  at nothing and **git runs no hooks and says nothing**. Clone `base` first.
+- **Nothing private, ever.** No name, host or path that identifies a person or an
+  employer. This repo is world-readable, and lint secret-scans its own files.
+- **Adding a tag is a deliberate edit to `tags.txt`**, never a side effect of filing.
+- **Tools derive their target from the git work tree they run in**, never from
+  where a file sits. Keep it that way: base knows nothing about the repos.
+- Each content repo has an eight-line `scripts/lint.py` that imports this one and
+  calls `main(local=check)` with its own rule. `public` bans private IPs and
+  internal hostnames, `private` requires numeric filenames and decrypts every
+  blob, `personal` and `business` add none.
+- The watcher's household context and folder list live in the **target** repo's
+  `scripts/watcher.config.json`, read at run time. Not here.
+- A content repo cloned without `base` beside it has `core.hooksPath` pointing at
+  nothing, so **git runs no hooks and says nothing**. Clone `base` first.

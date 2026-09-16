@@ -46,7 +46,7 @@ SKIP_DIRS = {".git", ".githooks", "_templates", "scripts", "setup", "docs",
 
 # Files that live in a repo but are documentation, not notes: no frontmatter
 # is expected and none is required.
-DOC_FILES = {"AGENTS.md", "CLAUDE.md", "README.md", "RULES.md",
+DOC_FILES = {"AGENTS.md", "CLAUDE.md", "VAULT.md", "README.md", "RULES.md",
              "WORKING-RULES.md"}
 
 REQUIRED_FIELDS = ("id", "title", "repo", "tags", "created", "updated")

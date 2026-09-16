@@ -27,13 +27,16 @@ Aliases: `kb` `kbp` `kbb` `kbu` `kbpriv` `kbin` `kbsync`.
 2. `../base/scripts/newnote.sh`, run inside the target repo, is the only way to
    create a note. It writes the ULID and the frontmatter, so nothing has to
    rewrite them afterwards.
-3. `python3 scripts/lint.py` before finishing. The pre-commit hook enforces it.
-4. Nothing reaches `public/` by moving a file. Restate the sanitised fact as a
-   fresh note and leave the original where it is.
-5. Merge before you create, and record conclusions rather than conversation.
-   Extend the note that already answers the question. 400 lines is the soft
-   ceiling, 600 the hard stop. The merge and split procedures are `RULES.md` §4:
-   follow them, do not improvise.
+3. `python3 scripts/lint.py` before finishing. The hook only catches what reaches
+   a commit, and most sessions end without one.
+4. Nothing reaches `public/` by moving a file. A move carries the original's
+   history, and history is the one thing `public` cannot take back. Restate the
+   sanitised fact as a fresh note; leave the original where it is.
+5. Merge before you create, and record conclusions rather than conversation. Two
+   notes on one subject are found by neither search, and the conversation is
+   scaffolding that comes down once the note stands. Extend the note that already
+   answers the question; 400 lines is the soft ceiling, 600 the hard stop. The
+   merge and split procedures are `RULES.md` §4: follow them, do not improvise.
 6. Never invent a folder. The declared sets are `RULES.md` §2. A declared one
    that is missing was lost to git not tracking directories: recreate it with a
    `.gitkeep`.
@@ -42,6 +45,37 @@ Aliases: `kb` `kbp` `kbb` `kbu` `kbpriv` `kbin` `kbsync`.
 
 Run `/context` to confirm this file and the repo's own loaded; `/doctor` proposes
 trims for a checked-in instruction file.
+
+## Who a note is for, and what success is
+
+Three readers, wanting different things:
+
+- **You in a year**, who has forgotten the context and needs the answer, the check
+  that proves it, and the date it was true. The default reader everywhere but `public`.
+- **An agent with no memory of this session**, which needs the conclusion stated
+  flatly, because it cannot infer what you meant from a conversation it never saw.
+- **A stranger**, in `public` only, who has none of that and no stake in it.
+
+Success is not a tidy vault. It is that a question asked in a year is answered by
+one note, found with the words you would actually search for, without opening a
+second file or going back to the transcript.
+
+## When two rules pull apart
+
+- **Completeness against conclusions-only.** Keep the result, the numbers with
+  their dates, the options that lost and why. Cut the path that produced them. If
+  you cannot tell which a detail is, ask whether someone re-running this would
+  need it.
+- **Merge first against one note, one question.** Merge wins until the combined
+  note answers two questions that would be searched for separately. Then split by
+  question. Line count is the symptom that prompts the look, never the reason.
+- **Reasoning against status** (`RULES.md` §2 draws the line; this is what to do
+  when one sentence sits on it). Split the sentence, not the note: the method to
+  `personal`, the figure to `private`, with a pointer. A figure that cannot be
+  separated from its reasoning is status.
+- **Delete against supersede** is `RULES.md` §7, and needs no restating here.
+- **A note against its source.** The source wins. Correct the note, date the
+  correction, and keep what it used to say if anyone acted on it.
 
 ## Where the detail lives
 

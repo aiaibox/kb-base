@@ -1,4 +1,4 @@
-# CLAUDE.md best practices — six sources, one synthesis
+# CLAUDE.md best practices — seven sources, one synthesis
 
 What to put in `CLAUDE.md` / `AGENTS.md`, how Claude Code actually consumes
 those files, and where the published advice agrees, disagrees, or is wrong.
@@ -15,6 +15,7 @@ arbiter for mechanics only, and is tagged separately.
 | **[12FA]** | humanlayer/12-factor-agents @ d20c728 — README, `content/` (12 factors + appendix), `drafts/`, `workshops/`, both `CLAUDE.md` files | 2026-09-17 |
 | **[HL]** | HumanLayer, *Writing a good CLAUDE.md* — humanlayer.dev/blog/writing-a-good-claude-md | 2026-09-17 |
 | **[BTN]** | buildthisnow, *CLAUDE.md Best Practices* — buildthisnow.com/blog/tools/claude-md-best-practices | 2026-09-17 |
+| **[AKS]** | multica-ai/andrej-karpathy-skills @ 2c60614 (2026-04-20) — all nine files: `CLAUDE.md`, `README.md` + `README.zh.md`, `EXAMPLES.md`, `skills/karpathy-guidelines/SKILL.md`, `CURSOR.md`, `.cursor/rules/karpathy-guidelines.mdc`, `.claude-plugin/` manifests | 2026-09-17 |
 | **[Docs]** | Claude Code documentation, *How Claude remembers your project* — code.claude.com/docs/en/memory | 2026-09-17 |
 
 **The one-paragraph version.** The file is the highest-leverage prompt you
@@ -24,9 +25,13 @@ the session, so it should hold only what is true in every session, stated
 concretely enough to verify, with the reason attached where a rule has edge
 cases. Everything else moves out: deterministic checks to hooks and
 permissions, procedures to skills, path-specific rules to `.claude/rules/`,
-deep reference to files the agent is pointed at and reads on demand. Write it
-by hand, grow it from real mistakes, keep the root under about 200 lines, and
-test that it loaded and is being followed.
+deep reference to files the agent is pointed at and reads on demand. One kind
+of content is universal by nature and earns a permanent place: a short
+behavioural block — state assumptions, write the minimum, change only what the
+request touches, define success criteria the agent can loop against — kept
+once at user scope so every project inherits it. Write it by hand, grow it
+from real mistakes, keep the root under about 200 lines, and test that it
+loaded and is being followed.
 
 ---
 
@@ -54,6 +59,21 @@ prompts as first-class code you can test, evaluate, iterate and read;
 interface with the LLM" **[12FA]**. In Claude Code the harness owns the system
 prompt and the tool schemas; `CLAUDE.md`, `.claude/rules/`, skills and
 `--append-system-prompt` are the parts of the prompt you own.
+
+**It is also where you correct the model's known habits.** Six of the seven
+sources treat the file as *project* context. **[AKS]** shows the other half:
+a 65-line file with no project facts at all, derived from Andrej Karpathy's
+observations of what coding models get wrong — they "make wrong assumptions on
+your behalf and just run along with them without checking … don't manage their
+confusion, don't seek clarifications, don't surface inconsistencies, don't
+present tradeoffs, don't push back when they should"; they "really like to
+overcomplicate code and APIs, bloat abstractions, don't clean up dead code …
+implement a bloated construction over 1000 lines when 100 would do"; and they
+"change/remove comments and code they don't sufficiently understand as side
+effects, even if orthogonal to the task". Each failure mode gets one principle
+(§4.6). Because these habits are model-wide, the block is the one piece of
+content that satisfies **[HL]**'s "universally applicable" test in every
+repository.
 
 **It pays for itself quickly, but not instantly.** The only measured numbers
 come from **[CCBP]**'s benchmark harness (Sonnet 4.6, April 2026, three
@@ -308,6 +328,54 @@ decided against … add one or two lines to address the specific issue. A
 CLAUDE.md that grows organically from real problems is more useful than one
 written speculatively" **[CCBP]**.
 
+### 4.6 Behavioural rules — the one block that is universal
+
+**[AKS]** is the only source whose `CLAUDE.md` contains no project facts. Its
+four principles each open with a one-sentence thesis, carry four or five
+concrete bullets, and close with a self-test the model can apply:
+
+| Principle | Thesis | Self-test | Karpathy failure mode it targets |
+|---|---|---|---|
+| **Think before coding** | "Don't assume. Don't hide confusion. Surface tradeoffs." State assumptions; if several interpretations exist present them rather than picking silently; say so when a simpler approach exists; if unclear, stop, name what is confusing, ask | — | wrong assumptions run with unchecked; confusion hidden; no pushback |
+| **Simplicity first** | "Minimum code that solves the problem. Nothing speculative." No unrequested features, no abstractions for single-use code, no unrequested configurability, no error handling for impossible cases; "if you write 200 lines and it could be 50, rewrite it" | "Would a senior engineer say this is overcomplicated?" | bloated abstractions, 1000 lines where 100 would do |
+| **Surgical changes** | "Touch only what you must. Clean up only your own mess." Don't improve adjacent code, comments or formatting; don't refactor what isn't broken; match existing style; remove only the imports and variables *your* change orphaned; mention pre-existing dead code, don't delete it | "Every changed line should trace directly to the user's request." | orthogonal side-effect edits |
+| **Goal-driven execution** | "Define success criteria. Loop until verified." Turn imperatives into verifiable goals — "Fix the bug" → "write a test that reproduces it, then make it pass"; "Refactor X" → "tests pass before and after"; for multi-step work state `1. [Step] → verify: [check]` | strong criteria let the model loop alone; "make it work" needs constant clarification | — (Karpathy's positive observation: "exceptionally good at looping until they meet specific goals … don't tell it what to do, give it success criteria and watch it go") |
+
+Three properties make it a model for any behavioural block:
+
+* **It states its own tradeoff and scope-out** up front — "These guidelines
+  bias toward caution over speed. For trivial tasks, use judgment" — which is
+  **[TAI]**'s tradeoff statement in bullet form, and tells the model when *not*
+  to apply the rules.
+* **It states how to tell it is working** — "fewer unnecessary changes in
+  diffs, fewer rewrites due to overcomplication, and clarifying questions come
+  before implementation rather than after mistakes" — the same success measure
+  **[TAI]** gives (fewer follow-up corrections) and **[CCBP]** asks you to check
+  (output consistency across sessions).
+* **It is cheap**: about twenty imperative bullets, so it fits the budget of
+  §3 beside a project file.
+
+The `EXAMPLES.md` that accompanies it is a bad/fixed gallery for *agent
+behaviour* — the Strategy pattern for a single discount calculation, the
+export function that silently chose scope, fields and file location, the
+bug-fix diff that also added username validation and type hints — and its
+closing insight generalises **[TAI]**'s "I don't add abstraction layers until
+a pattern has appeared three times": "the overcomplicated examples aren't
+obviously wrong — they follow design patterns and best practices. The problem
+is **timing**: they add complexity before it's needed." The examples are kept
+out of the instruction file itself, consistent with §5.
+
+**Where it belongs.** The README offers a per-project install (append to each
+`CLAUDE.md`) or a plugin. By the load table in §2.2 the efficient home for
+content that is true in every repository is **`~/.claude/CLAUDE.md`** — written
+once, loaded everywhere, and not competing with the project file's budget in
+the team's copy; a team that wants it shared commits one file and `@`-imports
+it (§7). The principles also read as the agent-side complement of
+**[CCBP]**'s prompt anti-patterns: AP-11 ("refactor this") and AP-14
+("production-ready" without criteria) tell the *human* to supply scope and
+success criteria; "Think before coding" and "Goal-driven execution" tell the
+*model* to ask for them when the human did not.
+
 ---
 
 ## 5. What to keep out
@@ -380,7 +448,11 @@ Commands, paths and hard constraints are look-up items and belong in bullets
 and tables. Values, audience and tradeoffs are reasoning and read better as
 two or three sentences. The failure mode is applying either form to the other
 kind of content: a bulleted "Tone: professional" **[TAI]**'s central example of
-what breaks — or a paragraph that buries the test command.
+what breaks — or a paragraph that buries the test command. **[AKS]** shows a
+hybrid that carries reasoning in bullet form: a bold one-sentence thesis, four
+bullets, and a closing self-test question ("Would a senior engineer say this
+is overcomplicated?"). The question is what lets a bullet list generalise to a
+case it never named.
 
 ### 6.3 State the why — but in one clause
 
@@ -440,6 +512,31 @@ is, not where a brand guide says to be" is a decision process, and only the
 second generalises to situations you never wrote a rule for **[TAI]**. The
 same applies to "response length: concise" — it cannot tell the model whether
 to shorten an explanation of a security bug.
+
+### 6.8 Declare the tradeoff, the scope-out, and the success measure
+
+A rule set should say what it costs, when it does not apply, and how you will
+know it is working. **[AKS]** does all three in three lines: "bias toward
+caution over speed"; "for trivial tasks (simple typo fixes, obvious
+one-liners), use judgment — not every change needs the full rigor"; and the
+"working if" footer listing observable diff-level effects. **[TAI]** asks for
+the same in prose (the tradeoff statement; success = fewer corrections), and
+**[CCBP]**'s dogfood file does it for content ("prefer published numbers over
+adjectives … if you don't have the number, say so"). Without the scope-out, a
+cautious rule set slows a one-line fix; without the success measure, nobody
+can tell whether a rule earns its budget line (§3) or should be cut (§10.2).
+
+### 6.9 Write goals, not procedures
+
+"Don't tell it what to do, give it success criteria and watch it go"
+**[AKS]** quoting Karpathy. An instruction phrased as a verifiable end state
+("the test that reproduces the bug passes; the rest of the suite is still
+green") lets the model loop without supervision; a procedure ("review the
+code, identify issues, make improvements, test") does not, and is the
+**[CCBP]** AP-12 blob from the other side. **[12FA]**'s agent loop is the same
+observation at the architecture level — the model chooses the next step
+toward a stated goal — and its Factor 9 (compact errors, retry, escalate
+after ~3) is what the loop does when a check fails.
 
 ---
 
@@ -506,6 +603,37 @@ want the model to call, just call them deterministically and let the model do
 the hard part of figuring out how to use their outputs" — is the argument for
 putting the test command and the entry-point path *in* the file rather than
 making the agent discover them every session **[12FA]**.
+
+**One body, several containers — and which container decides when it loads.**
+**[AKS]** ships the same 60 lines four ways: a root `CLAUDE.md` (per-project
+append), a `SKILL.md` inside a Claude Code plugin ("recommended" in its
+README), a Cursor rule `.cursor/rules/karpathy-guidelines.mdc` with
+`alwaysApply: true`, and the plugin/marketplace manifests. Two things follow:
+
+* **The container sets the disclosure level.** As `CLAUDE.md` or an
+  `alwaysApply` Cursor rule the block is present from the first turn; as a
+  skill it loads only when the model judges the description relevant
+  ("writing, reviewing, or refactoring code") **[Docs] [CCBP]**. Behavioural
+  rules matter most *before* the first edit — "clarifying questions come
+  before implementation" is their own success criterion — so on-demand
+  loading is the wrong level for this content, and the README's recommended
+  install trades reliability for reach. Skills remain right for procedures
+  (§7 table).
+* **Copies drift; imports don't.** `CURSOR.md` asks contributors to "keep
+  `CLAUDE.md` and `.cursor/rules/karpathy-guidelines.mdc` in sync" and to
+  update `SKILL.md` "if the published text should match" — three hand-synced
+  copies, already unequal (`SKILL.md` lacks the "working if" footer).
+  **[Docs]**' pattern for sharing one body across tools is a single source
+  plus `@AGENTS.md` or a symlink; where a tool cannot import (Cursor's
+  `.mdc` frontmatter), a build step that regenerates the copies beats a note
+  asking humans to remember.
+
+Two smaller observations from the same repo: `EXAMPLES.md` (522 lines of
+bad/fixed pairs) is human documentation the instruction file never points at
+— the file stays at 65 lines and the examples stay out of context, which is
+§5's "no code snippets" applied deliberately; and `README.zh.md` is a full
+Chinese translation of the *README*, not of the instruction file — the
+instruction text is kept in one language, the explanation for humans in two.
 
 ---
 
@@ -682,6 +810,10 @@ it is.
 * Measure: **[CCBP]**'s harness runs the same task set with and without the
   file; if you run only two comparisons in your own repo, run Sonnet-vs-Opus
   on your common task shapes and plan-mode on/off on your next refactor.
+* A `Stop` hook that runs the tests **[CCBP]** is the deterministic half of
+  **[AKS]**'s `[Step] → verify: [check]` loop: the prompt tells the model to
+  define and check success criteria; the hook checks the one criterion every
+  task shares whether or not the model remembered to.
 * Twelve-Factor's Factor 2 lists what owning the prompt buys: "build tests
   and evals for your prompts just like you would for any other code", iterate
   on real-world performance, and know exactly what the agent is working with
@@ -730,6 +862,13 @@ it is.
 | 18 | Believing the file is enforced | hooks and permissions for anything that must hold | [BTN] [HL] [Docs] [CCBP] |
 | 19 | Hook that calls Claude, swallows errors, exits 1, or matches all of `Bash` | deterministic, `set -euo pipefail`, exit 2 + stderr, narrow matcher | [CCBP] AP-7…10 |
 | 20 | Never checking `/context` | confirm the file is under **Memory files** | [Docs] |
+| 21 | Model silently picks one interpretation of an ambiguous request (scope, fields, file location) | instruct it to state assumptions and present the interpretations before implementing | [AKS] |
+| 22 | Speculative abstraction or features — a Strategy pattern for one discount, cache/validate/notify flags nobody asked for | "minimum code that solves the problem"; add complexity when the second case arrives | [AKS] [TAI] |
+| 23 | Drive-by edits in a bug-fix diff — reformatting, type hints, docstrings, adjacent "improvements" | "every changed line traces to the request"; match existing style; mention unrelated dead code, don't delete it | [AKS] |
+| 24 | Plan with no success criteria ("review, identify issues, improve, test") | `[Step] → verify: [check]`; a reproducing test before the fix | [AKS] [CCBP] AP-12/14 |
+| 25 | Behavioural rules shipped only as an on-demand skill | always-on container (user `CLAUDE.md`, `alwaysApply` rule) for rules that must precede the first edit | [AKS] as example; [Docs] |
+| 26 | The same instruction body copied into several files and synced by hand | one source; `@`-import or symlink; generate the rest | [AKS] as example; [Docs] |
+| 27 | A rule set with no stated tradeoff, scope-out or success measure | three lines: what it costs, when to skip it, what changes if it works | [AKS] [TAI] |
 
 ---
 
@@ -773,6 +912,10 @@ With, beside it: `.claude/settings.json` (allowlist of the hot path; deny
 `PostToolUse`; tests on `Stop`), `.claude/rules/` for `paths:`-scoped
 conventions, and skills for procedures.
 
+The behavioural block of §4.6 is deliberately absent from the project
+skeleton: it is true everywhere, so it lives once in `~/.claude/CLAUDE.md` —
+or, for a team, in one committed file that each project `@`-imports.
+
 ---
 
 ## 13. Index of disagreements
@@ -796,6 +939,11 @@ conventions, and skills for procedures.
 | Keeping files out of context | `.claudeignore` [CCBP] · `permissions.deny Read()` [Docs] | verify `.claudeignore` against current docs before relying on it |
 | Instruction budget 150–200 | asserted, unsourced [HL][BC][BTN] | order of magnitude; the uniform-degradation claim is the usable part |
 | Compliance decay 95 % → 20–60 % | asserted, unsourced [BTN] | direction plausible; do not quote as measured |
+| Deleting code beyond the request | "DELETE MORE THAN YOU ADD: complexity compounds into disasters" [12FA root `CLAUDE.md`] · "clean up only your own mess … mention unrelated dead code, don't delete it" [AKS] | [AKS]: deletion outside the request is a separate task to propose, not a side effect |
+| What to do when the task is unclear | "READ FIRST: always read at least 1500 lines" [12FA root `CLAUDE.md`] · "stop, name what's confusing, ask" [AKS] · "explore then act" [CCBP] | read what the task touches, then ask about what reading cannot settle; a fixed line count is neither |
+| Where behavioural rules live | append to every project `CLAUDE.md` [AKS README] · user-scope file loads everywhere [Docs load table; §3 budget] | `~/.claude/CLAUDE.md`, or one shared file imported by each project |
+| Always-on or on-demand for behavioural rules | plugin skill "recommended" [AKS README] · `alwaysApply: true` [AKS `.mdc`] · skills for task-specific procedures only [Docs] | always-on; the rules must precede the first edit |
+| One body across several tools | copy into `CLAUDE.md`, `SKILL.md`, `.mdc` and sync by hand [AKS CURSOR.md] · `@AGENTS.md` import or symlink [Docs] | single source; generate copies where a tool cannot import |
 
 ---
 
@@ -809,9 +957,13 @@ conventions, and skills for procedures.
 4. **[CCBP]** `examples/claude-md-minimal.md`, then one template for your
    stack, then `guides/anti-patterns.md`; run `tools/lint-claude-md.sh` and
    `tools/audit-claude-setup.sh` on your repo.
-5. **[BC]** and **[BTN]** as compact checklists to re-read when the file has
+5. **[AKS]** `CLAUDE.md` (65 lines) as the model of a universal behavioural
+   block, and `EXAMPLES.md` once, to see the failure modes it targets; then
+   decide what your `~/.claude/CLAUDE.md` says about assumptions, simplicity,
+   surgical diffs and success criteria.
+6. **[BC]** and **[BTN]** as compact checklists to re-read when the file has
    grown.
-6. **[12FA]** Factors 2, 3, 8, 10 and 13 when you start wiring hooks,
+7. **[12FA]** Factors 2, 3, 8, 10 and 13 when you start wiring hooks,
    permissions and skills around the file — they are the design principles
    those mechanisms implement.
 
@@ -819,4 +971,6 @@ conventions, and skills for procedures.
 this document — root under 100 lines, one emphasised line per file, commands
 and gates as sections, the private-tree rule enforced by `permissions.deny`
 rather than by instruction alone, detail behind pointers into `RULES.md`,
-`WORKING-RULES.md` and `docs/`. Change those files with this document open.
+`WORKING-RULES.md` and `docs/`. The vault's behavioural block is
+`WORKING-RULES.md` — the [AKS] role, written once and pointed at from the
+root. Change those files with this document open.

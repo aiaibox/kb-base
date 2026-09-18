@@ -84,6 +84,7 @@ without `base/` beside it silently runs no hooks at all.
 | What a note must contain, which repo, tags, size, merge and split | `base/RULES.md` |
 | How to behave: output, exact CLI, name the machine, change table | `base/WORKING-RULES.md` |
 | Turning chat exports into notes without leaking status or secrets | `base/docs/Distillation-Playbook.md` |
+| Why the instruction files are shaped this way — six sources, merged, with their disagreements | `base/docs/CLAUDE_ME_BEST_PRACTICE.md` |
 | A fresh Mac, end to end | `base/docs/New-Machine-Setup.md` |
 | Capture from a browser chat, per client | `base/docs/Client-Setup.md` |
 | Architecture, where things go, what an AI can see | `personal/tech/kb/kb-system.md`, `kb-directory-scaffold.md`, `ai-access.md` |
